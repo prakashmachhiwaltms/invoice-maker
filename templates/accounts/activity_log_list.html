@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Activity Logs{% endblock %}
+{% block page_title %}Activity Logs{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Activity Logs</h1>
+        <p>{{ page_obj.paginator.count }} event{{ page_obj.paginator.count|pluralize }}</p>
+    </div>
+</div>
+
+<div class="surface-card mb-3">
+    <div class="surface-card-body py-3">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by action, user or description">
+            <button type="submit" class="btn btn-outline-soft"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+</div>
+
+<div class="surface-card">
+    {% if page_obj.object_list %}
+    <div class="table-responsive-clean" style="border:none;border-radius:0;">
+        <table class="table-clean mb-0">
+            <thead><tr><th>When</th><th>User</th><th>Action</th><th>Object</th><th>Description</th><th>IP</th></tr></thead>
+            <tbody>
+                {% for log in page_obj %}
+                <tr>
+                    <td class="text-nowrap">{{ log.created_at|naturaltime }}</td>
+                    <td>{{ log.user.get_full_name|default:log.user.username|default:"—" }}</td>
+                    <td class="fw-semibold">{{ log.action }}</td>
+                    <td>{% if log.object_type %}{{ log.object_type }} #{{ log.object_id }}{% else %}—{% endif %}</td>
+                    <td class="text-muted-2 small">{{ log.description|default:"—" }}</td>
+                    <td class="text-muted-2 small">{{ log.ip_address|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'partials/pagination.html' %}
+    {% else %}
+    <div class="empty-state"><div class="empty-icon"><i class="bi bi-clock-history"></i></div><p class="mb-0">No activity yet.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

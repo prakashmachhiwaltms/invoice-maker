@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Welcome back, {{ request.user.first_name|default:request.user.username }}</h1>
+        <p>Here's what's happening with your invoices today.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'invoices:upload' %}" class="btn btn-outline-soft"><i class="bi bi-cloud-upload me-1"></i> Upload Excel</a>
+        <a href="{% url 'invoices:invoice_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Create Invoice</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label"><span>Total Invoices</span><span class="stat-icon icon-tile-primary"><i class="bi bi-receipt"></i></span></div>
+            <div class="stat-value">{{ total_invoices|intcomma }}</div>
+            <div class="stat-sub">{{ generated_count }} generated &middot; {{ failed_count }} failed</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label"><span>Generated Today</span><span class="stat-icon icon-tile-accent"><i class="bi bi-calendar-check"></i></span></div>
+            <div class="stat-value">{{ invoices_today|intcomma }}</div>
+            <div class="stat-sub">Since midnight</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label"><span>Total Batches</span><span class="stat-icon icon-tile-info"><i class="bi bi-collection"></i></span></div>
+            <div class="stat-value">{{ total_batches|intcomma }}</div>
+            <div class="stat-sub">Excel/CSV uploads</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label"><span>Total Invoice Value</span><span class="stat-icon icon-tile-warning"><i class="bi bi-cash-stack"></i></span></div>
+            <div class="stat-value">{{ total_invoice_value|floatformat:2|intcomma }}</div>
+            <div class="stat-sub">Taxable {{ total_taxable_value|floatformat:2|intcomma }} &middot; Tax {{ total_tax|floatformat:2|intcomma }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="surface-card mb-3">
+            <div class="surface-card-header">
+                <span class="fw-semibold">Recent Invoices</span>
+                <a href="{% url 'invoices:invoice_list' %}" class="small">View all <i class="bi bi-arrow-right"></i></a>
+            </div>
+            {% if recent_invoices %}
+            <div class="table-responsive-clean" style="border:none;border-radius:0;">
+                <table class="table-clean mb-0">
+                    <thead><tr><th>Invoice</th><th>Supplier</th><th>Total</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for inv in recent_invoices %}
+                        <tr>
+                            <td><a href="{% url 'invoices:invoice_detail' inv.pk %}" class="fw-semibold">{{ inv.invoice_number }}</a></td>
+                            <td>{{ inv.supplier_name }}</td>
+                            <td class="mono">{{ inv.total|floatformat:2|intcomma }}</td>
+                            <td>
+                                {% if inv.status == 'GENERATED' %}<span class="pill pill-success">Generated</span>
+                                {% elif inv.status == 'FAILED' %}<span class="pill pill-danger">Failed</span>
+                                {% else %}<span class="pill pill-neutral">Pending</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon"><i class="bi bi-receipt"></i></div>
+                <p class="mb-0">No invoices yet. Upload an Excel/CSV file or create one manually.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="surface-card mb-3">
+            <div class="surface-card-header">
+                <span class="fw-semibold">Recent Batches</span>
+                <a href="{% url 'invoices:batch_list' %}" class="small">View all <i class="bi bi-arrow-right"></i></a>
+            </div>
+            {% if recent_batches %}
+            <div class="surface-card-body pt-2">
+                {% for batch in recent_batches %}
+                <a href="{% url 'invoices:batch_detail' batch.pk %}" class="d-flex align-items-center justify-content-between py-2 {% if not forloop.last %}border-bottom{% endif %}" style="border-color:var(--color-border) !important;">
+                    <div>
+                        <div class="fw-semibold small">{{ batch.original_filename }}</div>
+                        <div class="text-muted-2" style="font-size:0.78rem;">{{ batch.created_at|naturaltime }}</div>
+                    </div>
+                    <span class="pill {% if batch.status == 'COMPLETED' %}pill-success{% elif batch.status == 'FAILED' %}pill-danger{% else %}pill-neutral{% endif %}">
+                        {{ batch.get_status_display }}
+                    </span>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon"><i class="bi bi-collection"></i></div>
+                <p class="mb-0">No batches uploaded yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="surface-card">
+            <div class="surface-card-header"><span class="fw-semibold">Quick Actions</span></div>
+            <div class="surface-card-body d-grid gap-2">
+                <a href="{% url 'invoices:upload' %}" class="btn btn-outline-soft text-start"><i class="bi bi-cloud-upload me-2"></i>Upload Excel</a>
+                <a href="{% url 'invoices:invoice_create' %}" class="btn btn-outline-soft text-start"><i class="bi bi-file-earmark-plus me-2"></i>Create Invoice</a>
+                {% if request.user.profile.is_admin %}
+                <a href="{% url 'settings_app:company' %}" class="btn btn-outline-soft text-start"><i class="bi bi-gear me-2"></i>Settings</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

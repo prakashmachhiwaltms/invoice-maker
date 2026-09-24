@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ invoice.invoice_number }}{% endblock %}
+{% block page_title %}Invoice Detail{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>{{ invoice.invoice_number }}</h1>
+        <p>
+            {% if invoice.status == 'GENERATED' %}<span class="pill pill-success">Generated</span>
+            {% elif invoice.status == 'FAILED' %}<span class="pill pill-danger">Failed — {{ invoice.error_message }}</span>
+            {% else %}<span class="pill pill-neutral">Pending</span>{% endif %}
+            &nbsp;&middot;&nbsp; Created {{ invoice.created_at|naturaltime }}
+            {% if invoice.batch %}&middot; Batch <a href="{% url 'invoices:batch_detail' invoice.batch.pk %}">#{{ invoice.batch.pk }}</a>{% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'invoices:invoice_preview' invoice.pk %}" class="btn btn-outline-soft"><i class="bi bi-eye me-1"></i> Preview</a>
+        <a href="{% url 'invoices:invoice_edit' invoice.pk %}" class="btn btn-outline-soft"><i class="bi bi-pencil me-1"></i> Edit</a>
+        {% if invoice.pdf_file %}<a href="{% url 'invoices:invoice_download_pdf' invoice.pk %}" class="btn btn-outline-soft"><i class="bi bi-file-earmark-pdf me-1"></i> PDF</a>{% endif %}
+        {% if invoice.docx_file %}<a href="{% url 'invoices:invoice_download_docx' invoice.pk %}" class="btn btn-outline-soft"><i class="bi bi-file-earmark-word me-1"></i> DOCX</a>{% endif %}
+        <a href="{% url 'invoices:invoice_delete' invoice.pk %}" class="btn btn-outline-soft text-danger"><i class="bi bi-trash me-1"></i> Delete</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="surface-card mb-3">
+            <div class="surface-card-header"><span class="fw-semibold">Supplier &amp; Invoice Details</span></div>
+            <div class="surface-card-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><div class="text-muted-2 small">Invoice To</div><div class="fw-semibold">{{ invoice.invoice_to|default:"—" }}</div></div>
+                    <div class="col-md-6"><div class="text-muted-2 small">Invoice Date</div><div class="fw-semibold">{{ invoice.invoice_date|date:"d-m-Y" }}</div></div>
+                    <div class="col-md-6"><div class="text-muted-2 small">Supplier Name</div><div class="fw-semibold">{{ invoice.supplier_name }}</div></div>
+                    <div class="col-md-6"><div class="text-muted-2 small">Supplier GSTIN</div><div class="fw-semibold">{{ invoice.supplier_gstin }}</div></div>
+                    <div class="col-12"><div class="text-muted-2 small">Address</div><div class="fw-semibold">{{ invoice.supplier_address }}</div></div>
+                    <div class="col-md-4"><div class="text-muted-2 small">Country</div><div class="fw-semibold">{{ invoice.country|default:"—" }}</div></div>
+                    <div class="col-md-4"><div class="text-muted-2 small">State</div><div class="fw-semibold">{{ invoice.state|default:"—" }}</div></div>
+                    <div class="col-md-4"><div class="text-muted-2 small">Place of Supply</div><div class="fw-semibold">{{ invoice.place_of_supply|default:"—" }}</div></div>
+                    <div class="col-12"><div class="text-muted-2 small">Description</div><div class="fw-semibold">{{ invoice.description }}</div></div>
+                    <div class="col-md-4"><div class="text-muted-2 small">HSN/SAC</div><div class="fw-semibold">{{ invoice.hsn }}</div></div>
+                    <div class="col-md-4"><div class="text-muted-2 small">Quantity</div><div class="fw-semibold">{{ invoice.quantity }}</div></div>
+                    <div class="col-md-4"><div class="text-muted-2 small">Tax Type</div><div class="fw-semibold">{{ invoice.get_tax_type_display }}</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="surface-card">
+            <div class="surface-card-header"><span class="fw-semibold">Tax Breakdown</span></div>
+            <div class="table-responsive-clean" style="border:none;border-radius:0;">
+                <table class="table-clean mb-0">
+                    <tbody>
+                        <tr><td>Taxable Value</td><td class="text-end mono">{{ invoice.taxable_value|floatformat:2|intcomma }}</td></tr>
+                        <tr><td>Discount</td><td class="text-end mono">{{ invoice.discount|floatformat:2|intcomma }}</td></tr>
+                        <tr><td>CGST ({{ invoice.cgst_rate }}%)</td><td class="text-end mono">{{ invoice.cgst_amount|floatformat:2|intcomma }}</td></tr>
+                        <tr><td>SGST ({{ invoice.sgst_rate }}%)</td><td class="text-end mono">{{ invoice.sgst_amount|floatformat:2|intcomma }}</td></tr>
+                        <tr><td>IGST ({{ invoice.igst_rate }}%)</td><td class="text-end mono">{{ invoice.igst_amount|floatformat:2|intcomma }}</td></tr>
+                        <tr><td>Freight</td><td class="text-end mono">{{ invoice.freight|floatformat:2|intcomma }}</td></tr>
+                        <tr><td>Insurance</td><td class="text-end mono">{{ invoice.insurance|floatformat:2|intcomma }}</td></tr>
+                        <tr><td>Packing</td><td class="text-end mono">{{ invoice.packing|floatformat:2|intcomma }}</td></tr>
+                        <tr><td class="fw-bold">Total</td><td class="text-end mono fw-bold">{{ invoice.total|floatformat:2|intcomma }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="surface-card-body pt-2">
+                <div class="text-muted-2 small">Amount in Words</div>
+                <div class="fw-semibold">{{ invoice.amount_in_words }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="surface-card">
+            <div class="surface-card-header"><span class="fw-semibold">Files</span></div>
+            <div class="surface-card-body d-grid gap-2">
+                {% if invoice.pdf_file %}
+                <a href="{% url 'invoices:invoice_download_pdf' invoice.pk %}" class="btn btn-outline-soft text-start"><i class="bi bi-file-earmark-pdf me-2"></i>{{ invoice.pdf_filename }}</a>
+                {% else %}
+                <div class="pill pill-warning">PDF not generated</div>
+                {% endif %}
+                {% if invoice.docx_file %}
+                <a href="{% url 'invoices:invoice_download_docx' invoice.pk %}" class="btn btn-outline-soft text-start"><i class="bi bi-file-earmark-word me-2"></i>{{ invoice.docx_filename }}</a>
+                {% else %}
+                <div class="pill pill-warning">DOCX not generated</div>
+                {% endif %}
+                <form method="post" action="{% url 'invoices:invoice_regenerate' invoice.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-arrow-clockwise me-2"></i>Regenerate files</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

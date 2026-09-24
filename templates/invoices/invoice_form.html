@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}{% if is_create %}Create Invoice{% else %}Edit {{ invoice.invoice_number }}{% endif %}{% endblock %}
+{% block page_title %}{% if is_create %}Create Invoice{% else %}Edit Invoice{% endif %}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>{% if is_create %}Create Invoice{% else %}Edit {{ invoice.invoice_number }}{% endif %}</h1>
+        <p>{% if is_create %}Manually create a single invoice.{% else %}Update invoice data. Regenerating recalculates tax and refreshes the PDF/DOCX.{% endif %}</p>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="surface-card mb-3">
+                <div class="surface-card-header"><span class="fw-semibold">Invoice</span></div>
+                <div class="surface-card-body row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Invoice Number <span class="required-mark">*</span></label>
+                        {{ form.invoice_number }}
+                        {% if form.invoice_number.errors %}<div class="text-danger small mt-1">{{ form.invoice_number.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Invoice Date <span class="required-mark">*</span></label>
+                        {{ form.invoice_date }}
+                        {% if form.invoice_date.errors %}<div class="text-danger small mt-1">{{ form.invoice_date.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Invoice To <span class="form-text">(overrides global default)</span></label>
+                        {{ form.invoice_to }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="surface-card mb-3">
+                <div class="surface-card-header"><span class="fw-semibold">Supplier</span></div>
+                <div class="surface-card-body row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Supplier Name <span class="required-mark">*</span></label>
+                        {{ form.supplier_name }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Supplier GSTIN</label>
+                        {{ form.supplier_gstin }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Address <span class="required-mark">*</span></label>
+                        {{ form.supplier_address }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Country</label>
+                        {{ form.country }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">State</label>
+                        {{ form.state }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">State Code</label>
+                        {{ form.state_code }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Place of Supply</label>
+                        {{ form.place_of_supply }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="surface-card mb-3">
+                <div class="surface-card-header"><span class="fw-semibold">Line Item</span></div>
+                <div class="surface-card-body row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Description <span class="required-mark">*</span></label>
+                        {{ form.description }}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">HSN <span class="required-mark">*</span></label>
+                        {{ form.hsn }}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Quantity</label>
+                        {{ form.quantity }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="surface-card">
+                <div class="surface-card-header"><span class="fw-semibold">Tax &amp; Amounts</span></div>
+                <div class="surface-card-body row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Total Value</label>
+                        {{ form.total_value }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Discount</label>
+                        {{ form.discount }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Taxable Value <span class="required-mark">*</span></label>
+                        {{ form.taxable_value }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tax Type</label>
+                        {{ form.tax_type }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tax Rate (%)</label>
+                        {{ form.tax_rate }}
+                        <div class="form-text">Leave tax amount blank to auto-calculate from rate.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tax Amount</label>
+                        {{ form.tax_amount }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Freight</label>
+                        {{ form.freight }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Insurance</label>
+                        {{ form.insurance }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Packing</label>
+                        {{ form.packing }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="surface-card">
+                <div class="surface-card-header"><span class="fw-semibold">Actions</span></div>
+                <div class="surface-card-body d-grid gap-2">
+                    <button type="submit" name="save" class="btn btn-outline-soft"><i class="bi bi-save me-2"></i>Save</button>
+                    <button type="submit" name="save_regenerate" class="btn btn-primary"><i class="bi bi-arrow-repeat me-2"></i>Save &amp; Regenerate PDF</button>
+                    {% if not is_create %}
+                    <a href="{% url 'invoices:invoice_detail' invoice.pk %}" class="btn btn-outline-soft">Cancel</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

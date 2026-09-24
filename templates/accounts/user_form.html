@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}{% if is_create %}Create User{% else %}Edit User{% endif %}{% endblock %}
+{% block page_title %}{% if is_create %}Create User{% else %}Edit User{% endif %}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>{% if is_create %}Create User{% else %}Edit {{ target_user.username }}{% endif %}</h1></div>
+</div>
+<div class="surface-card" style="max-width:640px;">
+    <div class="surface-card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Username</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    {{ form.email }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">First Name</label>
+                    {{ form.first_name }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Last Name</label>
+                    {{ form.last_name }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Role</label>
+                    {{ form.role }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phone</label>
+                    {{ form.phone }}
+                </div>
+                {% if is_create %}
+                <div class="col-md-6">
+                    <label class="form-label">Password</label>
+                    {{ form.password1 }}
+                    {% if form.password2.errors %}<div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Confirm Password</label>
+                    {{ form.password2 }}
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">{% if is_create %}Create User{% else %}Save Changes{% endif %}</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Signatures{% endblock %}
+{% block page_title %}Signatures{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Signature Management</h1>
+        <p>Upload the signature images used on generated invoices. PNG, JPG, JPEG or WEBP — transparent PNG recommended.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="surface-card">
+            <div class="surface-card-header"><span class="fw-semibold">Signature 1 — Director / Stamp</span></div>
+            <div class="surface-card-body">
+                {% if sig1 and sig1.image %}
+                <div class="mb-3 p-3 border rounded text-center" style="border-color:var(--color-border) !important;">
+                    <img src="{{ sig1.image.url }}" alt="Signature 1" style="max-height:90px;max-width:100%;">
+                </div>
+                <form method="post" action="{% url 'settings_app:signature_delete' 1 %}" class="mb-3" data-confirm="Remove Signature 1?">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-soft text-danger"><i class="bi bi-trash me-1"></i> Remove</button>
+                </form>
+                {% else %}
+                <div class="empty-state py-4"><p class="mb-0 small">No signature uploaded yet.</p></div>
+                {% endif %}
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form1.slot }}
+                    <div class="mb-2">
+                        <label class="form-label">Label</label>
+                        {{ form1.label }}
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Image</label>
+                        {{ form1.image }}
+                        {% if form1.image.errors %}<div class="text-danger small mt-1">{{ form1.image.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-check mb-3">
+                        {{ form1.is_active }}
+                        <label class="form-check-label small">Active</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">{% if sig1 %}Replace{% else %}Upload{% endif %} Signature 1</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="surface-card">
+            <div class="surface-card-header"><span class="fw-semibold">Signature 2 — Authorized Signatory</span></div>
+            <div class="surface-card-body">
+                {% if sig2 and sig2.image %}
+                <div class="mb-3 p-3 border rounded text-center" style="border-color:var(--color-border) !important;">
+                    <img src="{{ sig2.image.url }}" alt="Signature 2" style="max-height:90px;max-width:100%;">
+                </div>
+                <form method="post" action="{% url 'settings_app:signature_delete' 2 %}" class="mb-3" data-confirm="Remove Signature 2?">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-soft text-danger"><i class="bi bi-trash me-1"></i> Remove</button>
+                </form>
+                {% else %}
+                <div class="empty-state py-4"><p class="mb-0 small">No signature uploaded yet.</p></div>
+                {% endif %}
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form2.slot }}
+                    <div class="mb-2">
+                        <label class="form-label">Label</label>
+                        {{ form2.label }}
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Image</label>
+                        {{ form2.image }}
+                        {% if form2.image.errors %}<div class="text-danger small mt-1">{{ form2.image.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="form-check mb-3">
+                        {{ form2.is_active }}
+                        <label class="form-check-label small">Active</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">{% if sig2 %}Replace{% else %}Upload{% endif %} Signature 2</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

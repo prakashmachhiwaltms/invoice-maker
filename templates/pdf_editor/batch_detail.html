@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Batch #{{ batch.pk }}{% endblock %}
+{% block page_title %}Batch Detail{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ batch.name|default:batch }}</h1>
+        <p>{{ batch.total_files }} file(s) &middot; {{ batch.processed_count }} processed &middot; {{ edited_count }} edited &middot; {{ batch.failed_count }} failed</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'pdf_editor:find_replace' %}?scope=batch&batch={{ batch.pk }}" class="btn btn-outline-soft"><i class="bi bi-search me-1"></i> Find &amp; Replace</a>
+        <a href="{% url 'pdf_editor:label_editor_home' %}?scope=batch&batch={{ batch.pk }}" class="btn btn-outline-soft"><i class="bi bi-tags me-1"></i> Label &amp; Value Editor</a>
+        <a href="{% url 'pdf_editor:batch_download_zip' batch.pk %}" class="btn btn-outline-soft"><i class="bi bi-file-earmark-zip me-1"></i> Download ZIP</a>
+        <a href="{% url 'pdf_editor:batch_list' %}" class="btn btn-outline-soft"><i class="bi bi-arrow-left me-1"></i> Back</a>
+    </div>
+</div>
+
+<div class="surface-card mb-3">
+    <div class="surface-card-body py-3">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search filename in this batch">
+            <button type="submit" class="btn btn-outline-soft"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+</div>
+
+<div class="surface-card">
+    {% if documents %}
+    <div class="table-responsive-clean" style="border:none;border-radius:0;">
+        <table class="table-clean mb-0">
+            <thead><tr><th>Filename</th><th>Pages</th><th>Version</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr>
+                    <td><a href="{% url 'pdf_editor:editor' doc.pk %}" class="fw-semibold">{{ doc.filename }}</a></td>
+                    <td>{{ doc.page_count }}</td>
+                    <td>v{{ doc.current_version.version_number|default:1 }}{% if doc.is_edited %} <span class="pill pill-success">Edited</span>{% endif %}</td>
+                    <td>
+                        {% if doc.status == 'READY' %}<span class="pill pill-success">Ready</span>
+                        {% elif doc.status == 'SCANNED' %}<span class="pill pill-warning">Scanned</span>
+                        {% elif doc.status == 'FAILED' %}<span class="pill pill-danger">Failed</span>
+                        {% else %}<span class="pill pill-neutral">Uploaded</span>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'pdf_editor:editor' doc.pk %}" class="btn btn-sm btn-outline-soft">Edit</a>
+                        <a href="{% url 'pdf_editor:label_editor' doc.pk %}" class="btn btn-sm btn-outline-soft">Labels</a>
+                        <a href="{% url 'pdf_editor:download_current' doc.pk %}" class="btn btn-sm btn-outline-soft">Download</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon"><i class="bi bi-file-earmark-pdf"></i></div><p class="mb-0">No PDFs in this batch.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

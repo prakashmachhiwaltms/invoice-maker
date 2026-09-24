@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Upload Excel{% endblock %}
+{% block page_title %}Upload Excel{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Upload Invoice Data</h1>
+        <p>Each valid row in your spreadsheet becomes exactly one invoice. Nothing is merged or grouped.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="surface-card">
+            <div class="surface-card-body">
+                <form method="post" enctype="multipart/form-data" data-upload-form>
+                    {% csrf_token %}
+                    <div class="dropzone" data-dropzone>
+                        {{ form.file }}
+                        <div class="dz-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                        <p class="fw-semibold mb-1">Drag &amp; drop your file here</p>
+                        <p class="text-muted-2 small mb-0">or click to browse &middot; .xlsx, .xls, .csv &middot; up to 10 MB</p>
+                    </div>
+                    {% if form.file.errors %}
+                    <div class="text-danger small mt-2">{{ form.file.errors.0 }}</div>
+                    {% endif %}
+
+                    <div class="file-chip mt-3" data-file-info hidden>
+                        <i class="bi bi-file-earmark-spreadsheet"></i>
+                        <span data-file-name></span>
+                        <span class="text-muted-2" data-file-size></span>
+                    </div>
+
+                    <div class="mt-3" data-upload-progress hidden>
+                        <div class="progress" style="height:6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width:100%"></div>
+                        </div>
+                        <p class="text-muted-2 small mt-2 mb-0">Reading spreadsheet, validating rows...</p>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-4" data-upload-submit disabled>
+                        <i class="bi bi-upload me-1"></i> Upload &amp; Validate
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="surface-card">
+            <div class="surface-card-header"><span class="fw-semibold">Expected columns</span></div>
+            <div class="surface-card-body">
+                <p class="small text-muted-2 mb-2">Column names are matched flexibly (case-insensitive). Required:</p>
+                <ul class="small mb-3 ps-3">
+                    <li>Invoice number</li>
+                    <li>Date</li>
+                    <li>Name of supplier</li>
+                    <li>Address</li>
+                    <li>Description of service</li>
+                    <li>HSN</li>
+                    <li>Taxable Value</li>
+                    <li>Tax amount</li>
+                    <li>Total</li>
+                </ul>
+                <p class="small text-muted-2 mb-0">Optional: Country, State, State Code, Place of Supply, Supplier GSTIN, Invoice To, Quantity, Discount, Tax Rate, Freight, Insurance, Packing.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

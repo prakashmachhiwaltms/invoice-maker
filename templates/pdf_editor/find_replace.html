@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Find & Replace{% endblock %}
+{% block page_title %}Find & Replace{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>PDF Find &amp; Replace</h1>
+        <p>Find and replace text across one or more uploaded PDFs. Only PDFs that actually contain the search text are changed.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="surface-card">
+            <div class="surface-card-body">
+                <form method="post" data-pdf-find-replace-form>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.find_text.label }}</label>
+                        {{ form.find_text }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.replace_text.label }}</label>
+                        {{ form.replace_text }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block">Scope</label>
+                        {% for radio in form.scope %}
+                        <div class="form-check">{{ radio.tag }} <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label></div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3" data-scope-batch-picker>
+                        <label class="form-label small">Batch</label>
+                        <select class="form-select" data-batch-picker>
+                            <option value="">Choose a batch...</option>
+                            {% for b in batches %}
+                            <option value="{{ b.pk }}" {% if form.batch_id.value == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name|default:b }} ({{ b.documents.count }} PDFs)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {{ form.document_ids }}
+                    {{ form.batch_id }}
+
+                    <button type="submit" name="action" value="preview" class="btn btn-primary">
+                        <i class="bi bi-search me-1"></i> Preview Matches
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        {% if preview_rows is not None %}
+        <div class="surface-card">
+            <div class="surface-card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Bulk Replacement Preview</span>
+                <span class="small text-muted-2">Affected PDFs: {{ matched_count }}</span>
+            </div>
+            <div class="surface-card-body">
+                <p class="small text-muted-2 mb-3">
+                    Find <strong>"{{ form.find_text.value }}"</strong> &rarr; Replace <strong>"{{ form.replace_text.value }}"</strong>
+                </p>
+                {% if matched_count %}
+                <div class="table-responsive-clean mb-3">
+                    <table class="table-clean mb-0">
+                        <thead><tr><th>Filename</th><th>Matches</th></tr></thead>
+                        <tbody>
+                            {% for row in preview_rows %}
+                            {% if row.match_count %}
+                            <tr><td>{{ row.document.filename }}</td><td>{{ row.match_count }}</td></tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <form method="post" action="{% url 'pdf_editor:find_replace_apply' %}" data-confirm="Apply this replacement to {{ matched_count }} PDF(s)? Each affected PDF gets a new version - originals are kept.">
+                    {% csrf_token %}
+                    <input type="hidden" name="find_text" value="{{ form.find_text.value }}">
+                    <input type="hidden" name="replace_text" value="{{ form.replace_text.value }}">
+                    <input type="hidden" name="scope" value="{{ form.scope.value }}">
+                    <input type="hidden" name="document_ids" value="{{ form.document_ids.value|default:'' }}">
+                    <input type="hidden" name="batch_id" value="{{ form.batch_id.value|default:'' }}">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Apply to {{ matched_count }} PDF(s)</button>
+                        <a href="{% url 'pdf_editor:find_replace' %}" class="btn btn-outline-soft">Cancel</a>
+                    </div>
+                </form>
+                {% else %}
+                <div class="empty-state"><p class="mb-0">No PDFs in this scope contain that text.</p></div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="surface-card">
+            <div class="surface-card-body">
+                <p class="text-muted-2 mb-0">Choose a scope, enter Find/Replace text, and click Preview Matches to see how many PDFs would be affected before applying anything.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/pdf_editor.js' %}"></script>
+{% endblock %}

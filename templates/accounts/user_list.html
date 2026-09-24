@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Users{% endblock %}
+{% block page_title %}Users{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>User Management</h1>
+        <p>{{ page_obj.paginator.count }} user{{ page_obj.paginator.count|pluralize }}</p>
+    </div>
+    <a href="{% url 'accounts:user_create' %}" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Create User</a>
+</div>
+
+<div class="surface-card mb-3">
+    <div class="surface-card-body py-3">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by name, username or email">
+            <button type="submit" class="btn btn-outline-soft"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+</div>
+
+<div class="surface-card">
+    {% if page_obj.object_list %}
+    <div class="table-responsive-clean" style="border:none;border-radius:0;">
+        <table class="table-clean mb-0">
+            <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th></th></tr></thead>
+            <tbody>
+                {% for u in page_obj %}
+                <tr>
+                    <td class="fw-semibold">{{ u.get_full_name|default:"—" }}</td>
+                    <td>{{ u.username }}</td>
+                    <td>{{ u.email|default:"—" }}</td>
+                    <td><span class="role-badge {% if u.profile.is_admin %}admin{% else %}user{% endif %}">{% if u.profile.is_admin %}Admin{% else %}User{% endif %}</span></td>
+                    <td>{% if u.is_active %}<span class="pill pill-success">Active</span>{% else %}<span class="pill pill-danger">Inactive</span>{% endif %}</td>
+                    <td>{% if u.last_login %}{{ u.last_login|naturaltime }}{% else %}Never{% endif %}</td>
+                    <td class="text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-soft" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'accounts:user_edit' u.pk %}"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:user_reset_password' u.pk %}"><i class="bi bi-key me-2"></i>Reset Password</a></li>
+                                <li>
+                                    <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="bi bi-toggle2-{% if u.is_active %}on{% else %}off{% endif %} me-2"></i>
+                                            {% if u.is_active %}Deactivate{% else %}Activate{% endif %}
+                                        </button>
+                                    </form>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'accounts:user_delete' u.pk %}"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'partials/pagination.html' %}
+    {% else %}
+    <div class="empty-state"><div class="empty-icon"><i class="bi bi-people"></i></div><p class="mb-0">No users found.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

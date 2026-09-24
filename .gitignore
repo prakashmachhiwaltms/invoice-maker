@@ -1,0 +1,17 @@
+venv/
+__pycache__/
+*.pyc
+.env
+db.sqlite3
+media/uploads/*
+media/generated/*
+media/signatures/*
+media/pdf_editor/*
+!media/uploads/.gitkeep
+!media/generated/.gitkeep
+!media/signatures/.gitkeep
+!media/pdf_editor/.gitkeep
+staticfiles/
+*.log
+.DS_Store
+invoice-maker.zip

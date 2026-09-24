@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Version History{% endblock %}
+{% block page_title %}Version History{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ document.filename }}</h1>
+        <p>Version history &middot; the original upload is never overwritten.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'pdf_editor:editor' document.pk %}" class="btn btn-outline-soft"><i class="bi bi-pencil me-1"></i> Visual Editor</a>
+        <a href="{% url 'pdf_editor:label_editor' document.pk %}" class="btn btn-outline-soft"><i class="bi bi-tags me-1"></i> Label &amp; Value Editor</a>
+        <a href="{% url 'pdf_editor:library' %}" class="btn btn-outline-soft"><i class="bi bi-arrow-left me-1"></i> Library</a>
+    </div>
+</div>
+
+<div class="surface-card">
+    <div class="table-responsive-clean" style="border:none;border-radius:0;">
+        <table class="table-clean mb-0">
+            <thead><tr><th>Version</th><th>Note</th><th>Created By</th><th>Created At</th><th>Current</th><th></th></tr></thead>
+            <tbody>
+                {% for version in versions %}
+                <tr>
+                    <td class="fw-semibold">v{{ version.version_number }}{% if version.version_number == 1 %} <span class="pill pill-neutral">Original</span>{% endif %}</td>
+                    <td class="small">{{ version.note|default:"—" }}</td>
+                    <td>{{ version.created_by|default:"—" }}</td>
+                    <td class="text-muted-2 small">{{ version.created_at|naturaltime }}</td>
+                    <td>{% if document.current_version_id == version.id %}<span class="pill pill-success">Active</span>{% endif %}</td>
+                    <td class="text-end">
+                        <a href="{% url 'pdf_editor:download_version' document.pk version.version_number %}" class="btn btn-sm btn-outline-soft"><i class="bi bi-download"></i> Download</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,164 @@
+@page {
+    size: A4;
+    margin: 1.1cm;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    background: #ffffff;
+    color-scheme: light only;
+    min-height: 100%;
+}
+
+body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 9.5pt;
+    color: #000000;
+    background: #ffffff;
+    margin: 0;
+    padding: 0;
+}
+
+.invoice-box {
+    border: 1.5pt solid #000000;
+    padding: 0;
+}
+
+.invoice-title {
+    text-align: center;
+    font-size: 17pt;
+    font-weight: bold;
+    padding: 6px 0;
+    border-bottom: 1.5pt solid #000000;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.header-table td {
+    padding: 4px 8px;
+    vertical-align: top;
+    font-size: 9pt;
+    border-bottom: 1.2pt solid #000000;
+}
+
+.header-right {
+    text-align: right;
+    width: 34%;
+}
+
+.header-label {
+    font-weight: bold;
+}
+
+.supplier-table {
+    border-bottom: 1.2pt solid #000000;
+}
+
+.supplier-table td {
+    width: 50%;
+    padding: 6px 8px;
+    vertical-align: top;
+    font-size: 9pt;
+    line-height: 1.55;
+}
+
+.supplier-table td.left-box {
+    border-right: 1.2pt solid #000000;
+}
+
+.item-table {
+    table-layout: fixed;
+    width: 530pt;
+}
+
+.item-table th, .item-table td {
+    border: 0.8pt solid #000000;
+    padding: 3px 4px;
+    font-size: 7.5pt;
+    text-align: center;
+    vertical-align: middle;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.item-table th {
+    font-weight: bold;
+    background-color: #f2f2f2;
+}
+
+.item-table td.text-left {
+    text-align: left;
+}
+
+.item-table tr.filler-row td {
+    height: 16px;
+}
+
+.totals-table {
+    table-layout: fixed;
+    width: 530pt;
+    margin-top: -0.8pt;
+}
+
+.totals-table td {
+    border: 0.8pt solid #000000;
+    padding: 3px 8px;
+    font-size: 8pt;
+}
+
+.totals-table td.label-row {
+    text-align: left;
+    font-weight: bold;
+}
+
+.totals-table td.amt {
+    text-align: right;
+    font-weight: bold;
+}
+
+.totals-table td.words {
+    text-align: left;
+}
+
+.reverse-charge-note {
+    padding: 6px 8px;
+    font-size: 8.5pt;
+    font-style: italic;
+    border-bottom: 1.2pt solid #000000;
+}
+
+.footer-table td {
+    padding: 10px 8px;
+    vertical-align: bottom;
+    font-size: 9pt;
+}
+
+.footer-left {
+    width: 50%;
+}
+
+.footer-right {
+    width: 50%;
+    text-align: right;
+}
+
+.sig-img {
+    max-height: 55px;
+    max-width: 160px;
+}
+
+.company-logo {
+    max-height: 40px;
+    max-width: 140px;
+}
+
+.small-muted {
+    font-size: 8pt;
+    color: #444444;
+}

@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Invoice Settings{% endblock %}
+{% block page_title %}Invoice Settings{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Invoice Settings</h1>
+        <p>Controls the invoice title, footer, default tax rate, numbering and rounding used across the app.</p>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="surface-card mb-3">
+                <div class="surface-card-header"><span class="fw-semibold">Template Text</span></div>
+                <div class="surface-card-body row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Invoice Title</label>
+                        {{ form.invoice_title }}
+                        <div class="form-text">e.g. "Tax Invoice", "RCM Tax Invoice", "Service Invoice"</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Invoice To (default)</label>
+                        {{ form.invoice_to }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Footer "For" Text</label>
+                        {{ form.footer_for_text }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Authorized Signatory Text</label>
+                        {{ form.authorized_signatory_text }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Reverse Charge Note</label>
+                        {{ form.reverse_charge_note }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="surface-card mb-3">
+                <div class="surface-card-header"><span class="fw-semibold">Tax &amp; Currency</span></div>
+                <div class="surface-card-body row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Default Tax Rate (%)</label>
+                        {{ form.default_tax_rate }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Default HSN</label>
+                        {{ form.default_hsn }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Rounding Precision</label>
+                        {{ form.rounding_precision }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Currency</label>
+                        {{ form.currency }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Currency Symbol</label>
+                        {{ form.currency_symbol }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Amount in Words Format</label>
+                        {{ form.amount_words_format }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="surface-card">
+                <div class="surface-card-header"><span class="fw-semibold">Invoice Numbering</span></div>
+                <div class="surface-card-body row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Prefix</label>
+                        {{ form.invoice_number_prefix }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Starting Number</label>
+                        {{ form.invoice_number_start }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Number Padding</label>
+                        {{ form.invoice_number_padding }}
+                        <div class="form-text">Digits, e.g. 2 → RCM-01</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="surface-card">
+                <div class="surface-card-body">
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check2 me-1"></i> Save Invoice Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

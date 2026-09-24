@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Upload PDFs{% endblock %}
+{% block page_title %}Upload PDFs{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Upload PDF Invoices</h1>
+        <p>Upload one or more existing PDF invoices to edit their text directly.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="surface-card">
+            <div class="surface-card-body">
+                <form method="post" enctype="multipart/form-data" data-pdf-upload-form>
+                    {% csrf_token %}
+                    <div class="dropzone" data-pdf-dropzone>
+                        <input type="file" name="files" accept=".pdf" multiple hidden>
+                        <div class="dz-icon"><i class="bi bi-file-earmark-pdf"></i></div>
+                        <p class="fw-semibold mb-1">Drag &amp; drop PDF invoices here</p>
+                        <p class="text-muted-2 small mb-0">or click to browse &middot; .pdf only &middot; up to 25 MB each &middot; multiple files supported</p>
+                    </div>
+
+                    <div class="mt-3" data-pdf-file-list></div>
+
+                    <div class="mb-3 mt-3">
+                        <label class="form-label small">{{ form.batch_name.label }}</label>
+                        {{ form.batch_name }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" data-pdf-upload-submit disabled>
+                        <i class="bi bi-upload me-1"></i> Upload PDF(s)
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="surface-card">
+            <div class="surface-card-header"><span class="fw-semibold">About the PDF Editor</span></div>
+            <div class="surface-card-body">
+                <p class="small text-muted-2 mb-2">This is a separate tool from the Excel Invoice Generator. Upload an existing PDF invoice (from any source) and edit its visible text directly:</p>
+                <ul class="small mb-0 ps-3">
+                    <li>Click any text to replace it</li>
+                    <li>Change labels or values, including punctuation</li>
+                    <li>Add, hide, or move text</li>
+                    <li>Find &amp; Replace across a single PDF or an entire batch</li>
+                    <li>Every edit is versioned - the original file is never overwritten</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/pdf_editor.js' %}"></script>
+{% endblock %}

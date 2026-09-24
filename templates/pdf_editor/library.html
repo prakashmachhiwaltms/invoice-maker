@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}PDF Library{% endblock %}
+{% block page_title %}PDF Library{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>PDF Invoice Library</h1>
+        <p>{{ page_obj.paginator.count }} PDF{{ page_obj.paginator.count|pluralize }}{% if edited_only %} &middot; edited only{% endif %}</p>
+    </div>
+    <a href="{% url 'pdf_editor:upload' %}" class="btn btn-primary"><i class="bi bi-file-earmark-arrow-up me-1"></i> Upload PDFs</a>
+</div>
+
+<div class="surface-card mb-3">
+    <div class="surface-card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small">Search</label>
+                <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Filename">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    <option value="READY" {% if status == 'READY' %}selected{% endif %}>Ready</option>
+                    <option value="SCANNED" {% if status == 'SCANNED' %}selected{% endif %}>Scanned / Image-based</option>
+                    <option value="FAILED" {% if status == 'FAILED' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-outline-soft"><i class="bi bi-search"></i> Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="surface-card mb-3" data-bulk-bar hidden>
+    <div class="surface-card-body py-2 d-flex align-items-center gap-3">
+        <span class="small fw-semibold"><span data-bulk-count>0</span> selected</span>
+        <input type="hidden" data-bulk-ids-input>
+        <button type="button" class="btn btn-sm btn-outline-soft" data-pdf-bulk-action="{% url 'pdf_editor:find_replace' %}"><i class="bi bi-search"></i> Find &amp; Replace Selected</button>
+    </div>
+</div>
+
+<div class="surface-card">
+    {% if page_obj.object_list %}
+    <div class="table-responsive-clean" style="border:none;border-radius:0;">
+        <table class="table-clean mb-0">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" class="form-check-input" data-select-all></th>
+                    <th>Filename</th><th>Batch</th><th>Pages</th><th>Version</th><th>Status</th><th>Last Edited</th><th>Uploaded By</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in page_obj %}
+                <tr>
+                    <td><input type="checkbox" class="form-check-input" data-row-check value="{{ doc.pk }}"></td>
+                    <td><a href="{% url 'pdf_editor:editor' doc.pk %}" class="fw-semibold">{{ doc.filename }}</a></td>
+                    <td class="small text-muted-2">{% if doc.batch %}<a href="{% url 'pdf_editor:batch_detail' doc.batch.pk %}">{{ doc.batch.name|default:doc.batch }}</a>{% else %}—{% endif %}</td>
+                    <td>{{ doc.page_count }}</td>
+                    <td>v{{ doc.current_version.version_number|default:1 }}{% if doc.is_edited %} <span class="pill pill-success">Edited</span>{% endif %}</td>
+                    <td>
+                        {% if doc.status == 'READY' %}<span class="pill pill-success">Ready</span>
+                        {% elif doc.status == 'SCANNED' %}<span class="pill pill-warning">Scanned</span>
+                        {% elif doc.status == 'FAILED' %}<span class="pill pill-danger">Failed</span>
+                        {% else %}<span class="pill pill-neutral">Uploaded</span>{% endif %}
+                    </td>
+                    <td class="small text-muted-2">{{ doc.updated_at|naturaltime }}</td>
+                    <td>{{ doc.uploaded_by|default:"—" }}</td>
+                    <td class="text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-soft" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'pdf_editor:editor' doc.pk %}"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                                <li><a class="dropdown-item" href="{% url 'pdf_editor:label_editor' doc.pk %}"><i class="bi bi-tags me-2"></i>Label &amp; Value Editor</a></li>
+                                <li><a class="dropdown-item" href="{% url 'pdf_editor:find_replace' %}?document={{ doc.pk }}"><i class="bi bi-search me-2"></i>Find</a></li>
+                                <li><a class="dropdown-item" href="{% url 'pdf_editor:document_versions' doc.pk %}"><i class="bi bi-clock-history me-2"></i>Versions</a></li>
+                                <li><a class="dropdown-item" href="{% url 'pdf_editor:download_current' doc.pk %}"><i class="bi bi-download me-2"></i>Download</a></li>
+                                <li>
+                                    <form method="post" action="{% url 'pdf_editor:duplicate' doc.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item"><i class="bi bi-files me-2"></i>Duplicate</button>
+                                    </form>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'pdf_editor:delete' doc.pk %}"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'partials/pagination.html' %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon"><i class="bi bi-folder2-open"></i></div>
+        <p class="mb-0">No PDFs found. <a href="{% url 'pdf_editor:upload' %}">Upload a PDF</a> to get started.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Company Settings{% endblock %}
+{% block page_title %}Company Settings{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Company Settings</h1>
+        <p>These details appear on every newly generated invoice. Changes apply immediately — no code changes required.</p>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="surface-card">
+                <div class="surface-card-body row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Company Name</label>
+                        {{ form.company_name }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">GSTIN</label>
+                        {{ form.gstin }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Company Address</label>
+                        {{ form.company_address }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">State</label>
+                        {{ form.state }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">State Code</label>
+                        {{ form.state_code }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Country</label>
+                        {{ form.country }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Place of Supply</label>
+                        {{ form.place_of_supply }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Phone</label>
+                        {{ form.phone }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        {{ form.email }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Website</label>
+                        {{ form.website }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Logo</label>
+                        {{ form.logo }}
+                        {% if form.instance.logo %}<div class="form-text">Current: {{ form.instance.logo.name }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="surface-card">
+                <div class="surface-card-body">
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check2 me-1"></i> Save Company Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Label & Value Editor - {{ document.filename }}{% endblock %}
+{% block page_title %}Label & Value Editor{% endblock %}
+{% block extra_css %}
+<link href="{% static 'css/pdf_editor.css' %}" rel="stylesheet">
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="text-truncate" style="max-width:520px;">{{ document.filename }}</h1>
+        <p><span data-detected-summary>Detecting fields...</span></p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'pdf_editor:editor' document.pk %}" class="btn btn-outline-soft"><i class="bi bi-pencil me-1"></i> Visual Editor</a>
+        <a href="{% url 'pdf_editor:document_versions' document.pk %}" class="btn btn-outline-soft"><i class="bi bi-clock-history me-1"></i> Versions</a>
+        <a href="{% url 'pdf_editor:library' %}" class="btn btn-outline-soft"><i class="bi bi-arrow-left me-1"></i> Library</a>
+    </div>
+</div>
+
+<div id="label-editor-app"
+     data-document-id="{{ document.pk }}"
+     data-batch-id="{{ document.batch_id|default:'' }}"
+     data-page-count="{{ document.page_count }}"
+     data-has-text="{% if document.has_extractable_text %}1{% else %}0{% endif %}"
+     data-page-data-url="{% url 'pdf_editor:api_page_data' document.pk 1 %}"
+     data-fields-url="{% url 'pdf_editor:api_fields_list' document.pk %}"
+     data-redetect-url="{% url 'pdf_editor:api_fields_redetect' document.pk %}"
+     data-field-apply-url="{% url 'pdf_editor:api_field_apply' document.pk 0 %}"
+     data-field-confirm-url="{% url 'pdf_editor:api_field_confirm' document.pk 0 %}"
+     data-field-reject-url="{% url 'pdf_editor:api_field_reject' document.pk 0 %}"
+     data-manual-create-url="{% url 'pdf_editor:api_field_manual_create' document.pk %}"
+     data-undo-url="{% url 'pdf_editor:api_undo' document.pk %}"
+     data-redo-url="{% url 'pdf_editor:api_redo' document.pk %}"
+     data-label-editor-home-url="{% url 'pdf_editor:label_editor_home' %}">
+
+    {% if not document.has_extractable_text %}
+    <div class="alert alert-warning d-flex align-items-center gap-3 mb-3">
+        <i class="bi bi-exclamation-triangle fs-5"></i>
+        <div class="flex-grow-1">This PDF appears to be scanned/image-based - no fields can be detected without a text layer.</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="OCR is not installed in this environment yet">OCR Required</button>
+    </div>
+    {% endif %}
+
+    <div class="pdf-editor-shell label-editor-shell">
+        <div class="pdf-fields-panel">
+            <div class="pdf-fields-toolbar">
+                <button type="button" class="btn btn-sm btn-outline-soft flex-fill" data-action-add-field><i class="bi bi-plus-lg"></i> Add Field</button>
+                <button type="button" class="btn btn-sm btn-outline-soft" data-action-redetect title="Re-detect fields"><i class="bi bi-arrow-repeat"></i></button>
+            </div>
+            <div data-fields-table></div>
+        </div>
+
+        <div class="pdf-canvas-panel">
+            <div class="pdf-canvas-toolbar">
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-soft" data-page-prev><i class="bi bi-chevron-left"></i></button>
+                    <span class="small">Page <span data-page-current>1</span> / <span data-page-total>{{ document.page_count }}</span></span>
+                    <button type="button" class="btn btn-sm btn-outline-soft" data-page-next><i class="bi bi-chevron-right"></i></button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small text-primary" data-add-field-hint hidden>Click a text block to define a field</span>
+                    <button type="button" class="btn btn-sm btn-outline-soft" data-canvas-zoom="-10"><i class="bi bi-dash"></i></button>
+                    <span class="small" data-canvas-zoom-label>100%</span>
+                    <button type="button" class="btn btn-sm btn-outline-soft" data-canvas-zoom="10"><i class="bi bi-plus"></i></button>
+                </div>
+            </div>
+            <div class="pdf-canvas-scroll">
+                <div class="pdf-canvas-wrap" data-canvas-wrap>
+                    <img data-pdf-page-image alt="PDF page preview">
+                    <div class="pdf-overlay" data-pdf-overlay></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pdf-properties-panel">
+            <div data-panel-empty class="text-muted-2 small p-3">Select a field from the list or click it on the page to edit it.</div>
+
+            <div data-panel-field hidden>
+                <h6 class="fw-semibold px-3 pt-3 mb-2">Field</h6>
+                <div class="px-3">
+                    <div class="mb-2 d-flex gap-2" data-field-badges></div>
+
+                    <label class="form-label small mb-1">Label</label>
+                    <input type="text" class="form-control form-control-sm mb-2" data-field-label>
+
+                    <label class="form-label small mb-1">Separator</label>
+                    <select class="form-select form-select-sm mb-2" data-field-separator-select>
+                        <option value=":">:</option>
+                        <option value="-">-</option>
+                        <option value="–">–</option>
+                        <option value="=">=</option>
+                        <option value="|">|</option>
+                        <option value="/">/</option>
+                        <option value="">(none)</option>
+                        <option value="__custom__">Custom...</option>
+                    </select>
+                    <input type="text" class="form-control form-control-sm mb-2" data-field-separator-custom hidden placeholder="Custom separator">
+
+                    <label class="form-label small mb-1">Value</label>
+                    <textarea class="form-control form-control-sm mb-2" rows="3" data-field-value></textarea>
+
+                    <label class="form-label small mb-1">Originally detected</label>
+                    <div class="pdf-readonly-box mb-3" data-field-original></div>
+
+                    <div class="d-grid mb-2">
+                        <button type="button" class="btn btn-primary btn-sm" data-action-apply-field><i class="bi bi-check2 me-1"></i>Apply</button>
+                    </div>
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-success btn-sm flex-fill" data-action-confirm-field><i class="bi bi-hand-thumbs-up me-1"></i>Confirm</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm flex-fill" data-action-reject-field><i class="bi bi-hand-thumbs-down me-1"></i>Reject</button>
+                    </div>
+                    <a href="#" class="small" data-apply-to-batch-link><i class="bi bi-collection me-1"></i>Apply this change to the entire batch &rarr;</a>
+                </div>
+            </div>
+
+            <div data-panel-add hidden>
+                <h6 class="fw-semibold px-3 pt-3 mb-2">Add Custom Field</h6>
+                <div class="px-3">
+                    <p class="small text-muted-2">Click the text on the page that this field should represent.</p>
+                    <div class="pdf-readonly-box mb-2" data-add-field-source>Nothing selected yet.</div>
+                    <label class="form-label small mb-1">Label</label>
+                    <input type="text" class="form-control form-control-sm mb-2" data-add-field-label placeholder="e.g. Reference No.">
+                    <label class="form-label small mb-1">Separator</label>
+                    <input type="text" class="form-control form-control-sm mb-2" data-add-field-separator value=":" maxlength="5">
+                    <label class="form-label small mb-1">Value</label>
+                    <input type="text" class="form-control form-control-sm mb-2" data-add-field-value>
+                    <button type="button" class="btn btn-primary btn-sm w-100" data-action-save-manual-field disabled><i class="bi bi-plus-lg me-1"></i>Save Field</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pdf-bottom-bar">
+        <button type="button" class="btn btn-sm btn-outline-soft" data-action-undo disabled><i class="bi bi-arrow-counterclockwise me-1"></i>Undo</button>
+        <button type="button" class="btn btn-sm btn-outline-soft" data-action-redo disabled><i class="bi bi-arrow-clockwise me-1"></i>Redo</button>
+        <span class="ms-auto small text-muted-2" data-version-label></span>
+        <a href="{% url 'pdf_editor:download_current' document.pk %}" class="btn btn-sm btn-outline-soft"><i class="bi bi-download me-1"></i>Download</a>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/label_editor.js' %}"></script>
+{% endblock %}

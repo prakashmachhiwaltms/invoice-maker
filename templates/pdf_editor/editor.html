@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Edit {{ document.filename }}{% endblock %}
+{% block page_title %}PDF Editor{% endblock %}
+{% block extra_css %}
+<link href="{% static 'css/pdf_editor.css' %}" rel="stylesheet">
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="text-truncate" style="max-width:520px;">{{ document.filename }}</h1>
+        <p>Version <span data-version-label>{{ document.current_version.version_number|default:1 }}</span> &middot; {{ document.page_count }} page{{ document.page_count|pluralize }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'pdf_editor:library' %}" class="btn btn-outline-soft"><i class="bi bi-arrow-left me-1"></i> Library</a>
+        <a href="{% url 'pdf_editor:download_current' document.pk %}" class="btn btn-primary"><i class="bi bi-download me-1"></i> Download PDF</a>
+    </div>
+</div>
+
+<div id="pdf-editor-app"
+     data-document-id="{{ document.pk }}"
+     data-page-count="{{ document.page_count }}"
+     data-has-text="{% if document.has_extractable_text %}1{% else %}0{% endif %}"
+     data-page-data-url="{% url 'pdf_editor:api_page_data' document.pk 1 %}"
+     data-replace-url="{% url 'pdf_editor:api_replace' document.pk %}"
+     data-hide-url="{% url 'pdf_editor:api_hide' document.pk %}"
+     data-move-url="{% url 'pdf_editor:api_move' document.pk %}"
+     data-add-text-url="{% url 'pdf_editor:api_add_text' document.pk %}"
+     data-undo-url="{% url 'pdf_editor:api_undo' document.pk %}"
+     data-redo-url="{% url 'pdf_editor:api_redo' document.pk %}"
+     data-search-url="{% url 'pdf_editor:api_search' document.pk %}"
+     data-replace-all-url="{% url 'pdf_editor:api_replace_all' document.pk %}">
+
+    {% if not document.has_extractable_text %}
+    <div class="alert alert-warning d-flex align-items-center gap-3 mb-3">
+        <i class="bi bi-exclamation-triangle fs-5"></i>
+        <div class="flex-grow-1">This PDF appears to be scanned/image-based - it has no extractable text layer, so individual text blocks aren't available to click-and-edit.</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="OCR is not installed in this environment yet">Run OCR</button>
+    </div>
+    {% endif %}
+
+    <div class="pdf-editor-shell">
+        <div class="pdf-tool-rail">
+            <button type="button" class="pdf-tool-btn active" data-tool="select" title="Select / Edit Text"><i class="bi bi-cursor-fill"></i><span>Select</span></button>
+            <button type="button" class="pdf-tool-btn" data-tool="add" title="Add Text"><i class="bi bi-plus-square"></i><span>Add</span></button>
+            <button type="button" class="pdf-tool-btn" data-tool="hide" title="Hide / Delete Text"><i class="bi bi-eraser"></i><span>Hide</span></button>
+            <button type="button" class="pdf-tool-btn" data-tool="find" title="Find &amp; Replace"><i class="bi bi-search"></i><span>Find</span></button>
+        </div>
+
+        <div class="pdf-canvas-panel">
+            <div class="pdf-canvas-toolbar">
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-soft" data-page-prev><i class="bi bi-chevron-left"></i></button>
+                    <span class="small">Page <span data-page-current>1</span> / <span data-page-total>{{ document.page_count }}</span></span>
+                    <button type="button" class="btn btn-sm btn-outline-soft" data-page-next><i class="bi bi-chevron-right"></i></button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-soft" data-canvas-zoom="-10"><i class="bi bi-dash"></i></button>
+                    <span class="small" data-canvas-zoom-label>100%</span>
+                    <button type="button" class="btn btn-sm btn-outline-soft" data-canvas-zoom="10"><i class="bi bi-plus"></i></button>
+                </div>
+            </div>
+            <div class="pdf-canvas-scroll">
+                <div class="pdf-canvas-wrap" data-canvas-wrap>
+                    <img data-pdf-page-image alt="PDF page preview">
+                    <div class="pdf-overlay" data-pdf-overlay></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pdf-properties-panel">
+            <div data-panel-empty class="text-muted-2 small p-3">Click a text block on the page to edit it, or choose a tool on the left.</div>
+
+            <div data-panel-select hidden>
+                <h6 class="fw-semibold px-3 pt-3 mb-2">Selected Text</h6>
+                <div class="px-3">
+                    <label class="form-label small mb-1">Current Text</label>
+                    <div class="pdf-readonly-box mb-2" data-selected-text-display></div>
+
+                    <label class="form-label small mb-1">Replace With</label>
+                    <input type="text" class="form-control form-control-sm mb-2" data-replace-input>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small mb-1">Font</label>
+                            <div class="pdf-readonly-box" data-prop-font></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small mb-1">Size</label>
+                            <div class="pdf-readonly-box" data-prop-size></div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small mb-1">X</label>
+                            <input type="number" class="form-control form-control-sm" data-prop-x step="0.5">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small mb-1">Y</label>
+                            <input type="number" class="form-control form-control-sm" data-prop-y step="0.5">
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-primary btn-sm" data-action-apply-replace><i class="bi bi-check2 me-1"></i>Apply Replace</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-action-apply-move><i class="bi bi-arrows-move me-1"></i>Move To X/Y</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" data-action-hide><i class="bi bi-eraser me-1"></i>Hide / Delete</button>
+                    </div>
+                    <p class="small text-muted-2 mt-2 mb-0">Tip: drag the highlighted box on the page to move it.</p>
+                </div>
+            </div>
+
+            <div data-panel-add hidden>
+                <h6 class="fw-semibold px-3 pt-3 mb-2">Add Text</h6>
+                <div class="px-3">
+                    <p class="small text-muted-2">Click anywhere on the page to place new text at that spot.</p>
+                    <label class="form-label small mb-1">Text</label>
+                    <input type="text" class="form-control form-control-sm mb-2" data-add-text-input placeholder="e.g. Authorized Copy">
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small mb-1">Size</label>
+                            <input type="number" class="form-control form-control-sm" data-add-size value="11">
+                        </div>
+                        <div class="col-6 d-flex align-items-end gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="pdfAddBold" data-add-bold>
+                                <label class="form-check-label small" for="pdfAddBold">Bold</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="pdfAddItalic" data-add-italic>
+                                <label class="form-check-label small" for="pdfAddItalic">Italic</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="small text-muted-2 mb-2" data-add-position>Click the page to set position.</div>
+                    <button type="button" class="btn btn-primary btn-sm w-100" data-action-apply-add disabled><i class="bi bi-plus-lg me-1"></i>Add</button>
+                </div>
+            </div>
+
+            <div data-panel-find hidden>
+                <h6 class="fw-semibold px-3 pt-3 mb-2">Find &amp; Replace (this PDF)</h6>
+                <div class="px-3">
+                    <label class="form-label small mb-1">Find</label>
+                    <input type="text" class="form-control form-control-sm mb-2" data-find-input>
+                    <label class="form-label small mb-1">Replace</label>
+                    <input type="text" class="form-control form-control-sm mb-2" data-replace-all-input>
+                    <div class="d-flex gap-2 mb-2">
+                        <button type="button" class="btn btn-outline-soft btn-sm flex-fill" data-action-find><i class="bi bi-search me-1"></i>Find</button>
+                        <button type="button" class="btn btn-primary btn-sm flex-fill" data-action-replace-all><i class="bi bi-arrow-repeat me-1"></i>Replace All</button>
+                    </div>
+                    <div class="small mb-2" data-search-summary></div>
+                    <div data-search-results class="pdf-search-results"></div>
+                    <hr>
+                    <a href="{% url 'pdf_editor:find_replace' %}?document={{ document.pk }}" class="small"><i class="bi bi-collection me-1"></i>Cross-PDF / Batch Find &amp; Replace &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pdf-bottom-bar">
+        <button type="button" class="btn btn-sm btn-outline-soft" data-action-undo disabled><i class="bi bi-arrow-counterclockwise me-1"></i>Undo</button>
+        <button type="button" class="btn btn-sm btn-outline-soft" data-action-redo disabled><i class="bi bi-arrow-clockwise me-1"></i>Redo</button>
+        <a href="{% url 'pdf_editor:download_current' document.pk %}" class="btn btn-sm btn-outline-soft ms-auto"><i class="bi bi-download me-1"></i>Download</a>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/pdf_editor.js' %}"></script>
+{% endblock %}

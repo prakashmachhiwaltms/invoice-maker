@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ batch.original_filename }}{% endblock %}
+{% block page_title %}Batch Detail{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>{{ batch.original_filename }}</h1>
+        <p>Batch #{{ batch.pk }} &middot; Uploaded {{ batch.created_at|naturaltime }} by {{ batch.created_by|default:"—" }}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if invoices %}
+        <a href="{% url 'invoices:batch_download_zip' batch.pk %}" class="btn btn-outline-soft"><i class="bi bi-file-earmark-zip me-1"></i> Download All PDFs</a>
+        <a href="{% url 'invoices:batch_download_all_docx' batch.pk %}" class="btn btn-outline-soft"><i class="bi bi-file-earmark-word me-1"></i> Download All DOCX</a>
+        <a href="{% url 'invoices:batch_download_csv' batch.pk %}" class="btn btn-outline-soft"><i class="bi bi-filetype-csv me-1"></i> Download CSV</a>
+        {% endif %}
+        {% if batch.failed_count %}
+        <form method="post" action="{% url 'invoices:batch_regenerate_failed' batch.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-soft"><i class="bi bi-arrow-clockwise me-1"></i> Regenerate Failed</button>
+        </form>
+        {% endif %}
+        {% if batch.error_report %}
+        <a href="{% url 'invoices:batch_download_error_report' batch.pk %}" class="btn btn-outline-soft"><i class="bi bi-exclamation-triangle me-1"></i> Error Report</a>
+        {% endif %}
+        {% if request.user.profile.is_admin %}
+        <a href="{% url 'invoices:batch_delete' batch.pk %}" class="btn btn-outline-soft text-danger"><i class="bi bi-trash me-1"></i> Delete Batch</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-label">Rows</div><div class="stat-value">{{ batch.total_rows }}</div></div></div>
+    <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-label">Valid</div><div class="stat-value">{{ batch.valid_rows }}</div></div></div>
+    <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-label">Invalid</div><div class="stat-value">{{ batch.invalid_rows }}</div></div></div>
+    <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-label">Generated</div><div class="stat-value text-success">{{ batch.generated_count }}</div></div></div>
+    <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value text-danger">{{ batch.failed_count }}</div></div></div>
+    <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-label">Status</div><div class="stat-value" style="font-size:1rem;"><span class="pill pill-neutral">{{ batch.get_status_display }}</span></div></div></div>
+</div>
+
+<div class="surface-card">
+    <div class="surface-card-header"><span class="fw-semibold">Invoices in this batch ({{ invoices|length }})</span></div>
+    {% if invoices %}
+    <div class="table-responsive-clean" style="border:none;border-radius:0;">
+        <table class="table-clean mb-0">
+            <thead><tr><th>Invoice</th><th>Supplier</th><th>Total</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td><a href="{% url 'invoices:invoice_detail' inv.pk %}" class="fw-semibold">{{ inv.invoice_number }}</a></td>
+                    <td>{{ inv.supplier_name }}</td>
+                    <td class="mono">{{ inv.total|floatformat:2|intcomma }}</td>
+                    <td>
+                        {% if inv.status == 'GENERATED' %}<span class="pill pill-success">Generated</span>
+                        {% elif inv.status == 'FAILED' %}<span class="pill pill-danger" title="{{ inv.error_message }}">Failed</span>
+                        {% else %}<span class="pill pill-neutral">Pending</span>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if inv.pdf_file %}<a href="{% url 'invoices:invoice_download_pdf' inv.pk %}" class="btn btn-sm btn-outline-soft"><i class="bi bi-file-earmark-pdf"></i></a>{% endif %}
+                        <a href="{% url 'invoices:invoice_detail' inv.pk %}" class="btn btn-sm btn-outline-soft">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon"><i class="bi bi-receipt"></i></div>
+        <p class="mb-0">No invoices generated yet.{% if batch.status == 'UPLOADED' %} <a href="{% url 'invoices:batch_preview' batch.pk %}">Go to preview to generate them.</a>{% endif %}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

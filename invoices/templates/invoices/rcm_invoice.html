@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light only">
+<title>{{ invoice_title }} - {{ invoice_number }}</title>
+<style>{{ inline_css|safe }}</style>
+</head>
+<body>
+<div class="invoice-box">
+
+    <div class="invoice-title">
+        {% if company_logo_url %}<img src="{{ company_logo_url }}" class="company-logo" />{% endif %}
+        {{ invoice_title }}
+    </div>
+
+    <table class="header-table">
+        <tr>
+            <td>
+                <span class="header-label">Company Name: {{ company_name }}</span><br/>
+                Address: {{ company_address|linebreaksbr }}<br/>
+                GSTIN: {{ company_gstin }}
+            </td>
+            <td class="header-right">
+                <span class="header-label">Invoice No. - {{ invoice_number }}</span><br/><br/>
+                Date of Invoice: {{ invoice_date|date:"d-m-Y" }}
+            </td>
+        </tr>
+    </table>
+
+    <table class="supplier-table">
+        <tr>
+            <td class="left-box">
+                <strong>Details of Supplier :</strong><br/><br/>
+                Name : {{ supplier_name }}<br/>
+                Address: {{ supplier_address }}<br/><br/>
+                State: {{ state }}<br/>
+                State Code: {{ state_code }}<br/>
+                Place of supply - {{ place_of_supply }}<br/><br/>
+                GSTIN {{ supplier_gstin }}
+            </td>
+            <td>
+                <strong>Details of Recipient :</strong><br/><br/>
+                Name : {{ invoice_to|default:"-" }}<br/>
+                Address: {{ company_address|linebreaksbr }}<br/><br/>
+                State: {{ company_state }}<br/>
+                State Code: {{ company_state_code }}<br/>
+                Place of supply - {{ place_of_supply }}<br/><br/>
+                GSTIN {{ company_gstin }}
+            </td>
+        </tr>
+    </table>
+
+    <table class="item-table">
+        <thead>
+            <tr>
+                <th style="width:22pt;">Sr No.</th>
+                <th style="width:100pt;">Description of Good/service</th>
+                <th style="width:38pt;">HSN/SAC</th>
+                <th style="width:32pt;">QTY/Units</th>
+                <th style="width:42pt;">Total Value</th>
+                <th style="width:32pt;">Disc</th>
+                <th style="width:48pt;">Taxable Value</th>
+                <th style="width:28pt;">CGST Rate</th>
+                <th style="width:38pt;">CGST Amt</th>
+                <th style="width:28pt;">SGST Rate</th>
+                <th style="width:38pt;">SGST Amt</th>
+                <th style="width:28pt;">IGST Rate</th>
+                <th style="width:56pt;">IGST Amt</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td class="text-left">{{ description }}</td>
+                <td>{{ hsn }}</td>
+                <td>{{ quantity }}</td>
+                <td>{{ total_value|floatformat:2 }}</td>
+                <td>{{ discount|floatformat:2 }}</td>
+                <td>{{ taxable_value|floatformat:2 }}</td>
+                <td>{{ cgst_rate|floatformat:2 }}</td>
+                <td>{{ cgst_amount|floatformat:2 }}</td>
+                <td>{{ sgst_rate|floatformat:2 }}</td>
+                <td>{{ sgst_amount|floatformat:2 }}</td>
+                <td>{{ igst_rate|floatformat:2 }}</td>
+                <td>{{ igst_amount|floatformat:2 }}</td>
+            </tr>
+            {% for _ in blank_rows %}
+            <tr class="filler-row">
+                <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="totals-table">
+        <tr>
+            <td style="width:474pt;" class="label-row">Freight</td>
+            <td style="width:56pt;" class="amt">{{ freight|floatformat:2 }}</td>
+        </tr>
+        <tr>
+            <td style="width:474pt;" class="label-row">Insurance</td>
+            <td style="width:56pt;" class="amt">{{ insurance|floatformat:2 }}</td>
+        </tr>
+        <tr>
+            <td style="width:474pt;" class="label-row">Packing</td>
+            <td style="width:56pt;" class="amt">{{ packing|floatformat:2 }}</td>
+        </tr>
+        <tr>
+            <td style="width:474pt;" class="label-row"><strong>Total Bill Value (in Figure)</strong></td>
+            <td style="width:56pt;" class="amt"><strong>{{ total|floatformat:2 }}</strong></td>
+        </tr>
+        <tr>
+            <td style="width:474pt;" class="label-row"><strong>Total Bill Value (in Words)</strong></td>
+            <td style="width:56pt;" class="words">{{ amount_in_words }}</td>
+        </tr>
+    </table>
+
+    <div class="reverse-charge-note">{{ reverse_charge_note }}</div>
+
+    <table class="footer-table">
+        <tr>
+            <td class="footer-left">
+                {% if signature1 %}<img src="{{ signature1.image.url }}" class="sig-img" /><br/>{% endif %}
+            </td>
+            <td class="footer-right">
+                <strong>{{ footer_text }}</strong><br/>
+                {% if signature2 %}<img src="{{ signature2.image.url }}" class="sig-img" /><br/>{% endif %}
+                {{ authorized_signatory_text }}
+            </td>
+        </tr>
+    </table>
+
+</div>
+</body>
+</html>

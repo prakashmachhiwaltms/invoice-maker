@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Invoice History{% endblock %}
+{% block page_title %}Invoice History{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Invoice History</h1>
+        <p>{{ page_obj.paginator.count }} invoice{{ page_obj.paginator.count|pluralize }} total</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'invoices:upload' %}" class="btn btn-outline-soft"><i class="bi bi-cloud-upload me-1"></i> Upload Excel</a>
+        <a href="{% url 'invoices:invoice_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Create Invoice</a>
+    </div>
+</div>
+
+<div class="surface-card mb-3">
+    <div class="surface-card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Invoice number or supplier">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Batch</label>
+                <select name="batch" class="form-select">
+                    <option value="">All</option>
+                    {% for b in batches %}
+                    <option value="{{ b.pk }}" {% if request.GET.batch == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.original_filename|truncatechars:24 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Created By</label>
+                <select name="created_by" class="form-select">
+                    <option value="">All</option>
+                    {% for u in users %}
+                    <option value="{{ u.pk }}" {% if request.GET.created_by == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From</label>
+                <input type="date" name="date_from" value="{{ request.GET.date_from }}" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To</label>
+                <input type="date" name="date_to" value="{{ request.GET.date_to }}" class="form-control">
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="surface-card mb-3" data-bulk-bar hidden>
+    <div class="surface-card-body py-2 d-flex align-items-center gap-3">
+        <span class="small fw-semibold"><span data-bulk-count>0</span> selected</span>
+        <button type="button" class="btn btn-sm btn-outline-soft" data-bulk-action="{% url 'invoices:bulk_download_zip' %}?type=pdf"><i class="bi bi-file-earmark-zip"></i> Download ZIP (PDF)</button>
+        <button type="button" class="btn btn-sm btn-outline-soft" data-bulk-action="{% url 'invoices:bulk_download_zip' %}?type=docx"><i class="bi bi-file-earmark-word"></i> Download ZIP (DOCX)</button>
+        <button type="button" class="btn btn-sm btn-outline-soft" data-bulk-action="{% url 'invoices:bulk_download_csv' %}"><i class="bi bi-filetype-csv"></i> Export CSV</button>
+        {% if request.user.profile.is_admin %}
+        <form method="post" action="{% url 'invoices:bulk_delete' %}" class="ms-auto" data-confirm="Delete the selected invoice(s)? This cannot be undone.">
+            {% csrf_token %}
+            <input type="hidden" name="invoice_ids" data-bulk-ids-input>
+            <button type="submit" class="btn btn-sm btn-outline-soft text-danger"><i class="bi bi-trash"></i> Delete Selected</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="surface-card">
+    {% if page_obj.object_list %}
+    <div class="table-responsive-clean" style="border:none;border-radius:0;">
+        <table class="table-clean mb-0">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" class="form-check-input" data-select-all></th>
+                    <th>Invoice #</th><th>Date</th><th>Supplier</th><th>Taxable</th><th>Tax</th><th>Total</th>
+                    <th>Batch</th><th>Created By</th><th>Status</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in page_obj %}
+                <tr>
+                    <td><input type="checkbox" class="form-check-input" data-row-check value="{{ inv.pk }}"></td>
+                    <td><a href="{% url 'invoices:invoice_detail' inv.pk %}" class="fw-semibold">{{ inv.invoice_number }}</a></td>
+                    <td>{{ inv.invoice_date|date:"d-m-Y" }}</td>
+                    <td>{{ inv.supplier_name|truncatechars:28 }}</td>
+                    <td class="mono">{{ inv.taxable_value|floatformat:2|intcomma }}</td>
+                    <td class="mono">{{ inv.tax_amount|floatformat:2|intcomma }}</td>
+                    <td class="mono fw-semibold">{{ inv.total|floatformat:2|intcomma }}</td>
+                    <td>{% if inv.batch %}<a href="{% url 'invoices:batch_detail' inv.batch.pk %}" class="small">#{{ inv.batch.pk }}</a>{% else %}—{% endif %}</td>
+                    <td>{{ inv.created_by|default:"—" }}</td>
+                    <td>
+                        {% if inv.status == 'GENERATED' %}<span class="pill pill-success">Generated</span>
+                        {% elif inv.status == 'FAILED' %}<span class="pill pill-danger">Failed</span>
+                        {% else %}<span class="pill pill-neutral">Pending</span>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-soft" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'invoices:invoice_detail' inv.pk %}"><i class="bi bi-eye me-2"></i>View</a></li>
+                                <li><a class="dropdown-item" href="{% url 'invoices:invoice_edit' inv.pk %}"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                                {% if inv.pdf_file %}<li><a class="dropdown-item" href="{% url 'invoices:invoice_download_pdf' inv.pk %}"><i class="bi bi-file-earmark-pdf me-2"></i>Download PDF</a></li>{% endif %}
+                                {% if inv.docx_file %}<li><a class="dropdown-item" href="{% url 'invoices:invoice_download_docx' inv.pk %}"><i class="bi bi-file-earmark-word me-2"></i>Download DOCX</a></li>{% endif %}
+                                <li>
+                                    <form method="post" action="{% url 'invoices:invoice_regenerate' inv.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item"><i class="bi bi-arrow-clockwise me-2"></i>Regenerate</button>
+                                    </form>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'invoices:invoice_delete' inv.pk %}"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'partials/pagination.html' %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon"><i class="bi bi-receipt"></i></div>
+        <p class="mb-0">No invoices found. <a href="{% url 'invoices:upload' %}">Upload an Excel file</a> to get started.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

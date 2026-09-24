@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Batches{% endblock %}
+{% block page_title %}Batches{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Batch Management</h1>
+        <p>Every Excel/CSV upload creates a batch of invoices.</p>
+    </div>
+    <a href="{% url 'invoices:upload' %}" class="btn btn-primary"><i class="bi bi-cloud-upload me-1"></i> Upload Excel</a>
+</div>
+
+<div class="surface-card">
+    {% if page_obj.object_list %}
+    <div class="table-responsive-clean" style="border:none;border-radius:0;">
+        <table class="table-clean mb-0">
+            <thead><tr><th>File</th><th>Rows</th><th>Valid</th><th>Invalid</th><th>Generated</th><th>Failed</th><th>Status</th><th>Uploaded By</th><th>Date</th><th></th></tr></thead>
+            <tbody>
+                {% for batch in page_obj %}
+                <tr>
+                    <td><a href="{% url 'invoices:batch_detail' batch.pk %}" class="fw-semibold">{{ batch.original_filename }}</a></td>
+                    <td>{{ batch.total_rows }}</td>
+                    <td>{{ batch.valid_rows }}</td>
+                    <td>{{ batch.invalid_rows }}</td>
+                    <td>{{ batch.generated_count }}</td>
+                    <td>{{ batch.failed_count }}</td>
+                    <td>
+                        {% if batch.status == 'COMPLETED' %}<span class="pill pill-success">Completed</span>
+                        {% elif batch.status == 'FAILED' %}<span class="pill pill-danger">Failed</span>
+                        {% elif batch.status == 'PROCESSING' %}<span class="pill pill-warning">Processing</span>
+                        {% else %}<span class="pill pill-neutral">Uploaded</span>{% endif %}
+                    </td>
+                    <td>{{ batch.created_by|default:"—" }}</td>
+                    <td>{{ batch.created_at|naturaltime }}</td>
+                    <td class="text-end"><a href="{% url 'invoices:batch_detail' batch.pk %}" class="btn btn-sm btn-outline-soft">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'partials/pagination.html' %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon"><i class="bi bi-collection"></i></div>
+        <p class="mb-0">No batches uploaded yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

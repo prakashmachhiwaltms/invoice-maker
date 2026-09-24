@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Delete Batch{% endblock %}
+{% block page_title %}Delete Batch{% endblock %}
+{% block content %}
+<div class="surface-card" style="max-width:520px;">
+    <div class="surface-card-body">
+        <h1 class="h5 fw-bold mb-2 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Delete this batch?</h1>
+        <p class="text-muted-2">This will permanently delete <strong>{{ batch.name|default:batch }}</strong> and all {{ batch.documents.count }} PDF(s) in it, including every saved version. This cannot be undone.</p>
+        <form method="post" class="d-flex gap-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" style="background:var(--color-destructive);border-color:var(--color-destructive);">Delete permanently</button>
+            <a href="{% url 'pdf_editor:batch_detail' batch.pk %}" class="btn btn-outline-soft">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

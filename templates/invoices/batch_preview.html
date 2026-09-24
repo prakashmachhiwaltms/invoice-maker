@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Preview — {{ batch.original_filename }}{% endblock %}
+{% block page_title %}Batch Preview{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>{{ batch.original_filename }}</h1>
+        <p>Rows detected: {{ batch.total_rows }} &middot; Valid: {{ batch.valid_rows }} &middot; Invalid: {{ batch.invalid_rows }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if batch.invalid_rows %}
+        <a href="{% url 'invoices:batch_download_error_report' batch.pk %}" class="btn btn-outline-soft">
+            <i class="bi bi-file-earmark-arrow-down me-1"></i> Download Error Report
+        </a>
+        {% endif %}
+        {% if batch.valid_rows %}
+        <form method="post" action="{% url 'invoices:batch_generate' batch.pk %}" data-confirm="Generate {{ batch.valid_rows }} invoice(s) from this file?">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-accent"><i class="bi bi-lightning-charge me-1"></i> Generate Invoices</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card"><div class="stat-label">Rows Detected</div><div class="stat-value">{{ batch.total_rows }}</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card"><div class="stat-label">Valid Rows</div><div class="stat-value text-success">{{ batch.valid_rows }}</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card"><div class="stat-label">Invalid Rows</div><div class="stat-value text-danger">{{ batch.invalid_rows }}</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card"><div class="stat-label">Status</div><div class="stat-value" style="font-size:1rem;"><span class="pill pill-neutral">{{ batch.get_status_display }}</span></div></div>
+    </div>
+</div>
+
+{% if valid_rows %}
+<div class="surface-card mb-3">
+    <div class="surface-card-header"><span class="fw-semibold">Valid rows ({{ valid_rows|length }})</span></div>
+    <div class="table-responsive-clean" style="border:none;border-radius:0;">
+        <table class="table-clean mb-0">
+            <thead><tr><th>#</th><th>Invoice</th><th>Date</th><th>Supplier</th><th>Taxable</th><th>Tax</th><th>Total</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for row in valid_rows %}
+                <tr>
+                    <td>{{ row.row_number }}</td>
+                    <td class="fw-semibold">{{ row.data.invoice_number }}</td>
+                    <td>{{ row.data.invoice_date|date:"d-m-Y" }}</td>
+                    <td>{{ row.data.supplier_name }}</td>
+                    <td class="mono">{{ row.data.taxable_value|floatformat:2|intcomma }}</td>
+                    <td class="mono">{{ row.data.tax_amount|floatformat:2|intcomma }}</td>
+                    <td class="mono">{{ row.data.total|floatformat:2|intcomma }}</td>
+                    <td><span class="pill pill-success"><i class="bi bi-check-circle"></i> Valid</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if invalid_rows %}
+<div class="surface-card mb-3">
+    <div class="surface-card-header"><span class="fw-semibold">Invalid rows ({{ invalid_rows|length }})</span></div>
+    <div class="table-responsive-clean" style="border:none;border-radius:0;">
+        <table class="table-clean mb-0">
+            <thead><tr><th>#</th><th>Invoice</th><th>Supplier</th><th>Errors</th></tr></thead>
+            <tbody>
+                {% for row in invalid_rows %}
+                <tr>
+                    <td>{{ row.row_number }}</td>
+                    <td>{{ row.data.invoice_number|default:"—" }}</td>
+                    <td>{{ row.data.supplier_name|default:"—" }}</td>
+                    <td><span class="pill pill-danger"><i class="bi bi-x-circle"></i> {{ row.errors|join:"; " }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if not valid_rows and not invalid_rows %}
+<div class="surface-card"><div class="empty-state">
+    <div class="empty-icon"><i class="bi bi-inbox"></i></div>
+    <p class="mb-0">No rows were found in this file.</p>
+</div></div>
+{% endif %}
+
+{% endblock %}

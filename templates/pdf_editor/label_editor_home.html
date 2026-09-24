@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Label & Value Editor{% endblock %}
+{% block page_title %}Label & Value Editor{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Label &amp; Value Editor</h1>
+        <p>Detect Label / Value pairs in a PDF and edit the label, separator, and value independently. Separate from Find &amp; Replace.</p>
+    </div>
+</div>
+
+<div class="surface-card mb-3">
+    <div class="surface-card-header"><span class="fw-semibold">Open a PDF</span></div>
+    <div class="surface-card-body py-3">
+        <form method="get" class="d-flex gap-2 mb-3">
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by filename">
+            <button type="submit" class="btn btn-outline-soft"><i class="bi bi-search"></i></button>
+        </form>
+        {% if page_obj.object_list %}
+        <div class="table-responsive-clean" style="border:none;border-radius:0;">
+            <table class="table-clean mb-0">
+                <thead><tr><th>Filename</th><th>Batch</th><th>Version</th><th></th></tr></thead>
+                <tbody>
+                    {% for doc in page_obj %}
+                    <tr>
+                        <td class="fw-semibold">{{ doc.filename }}</td>
+                        <td class="small text-muted-2">{% if doc.batch %}{{ doc.batch.name|default:doc.batch }}{% else %}—{% endif %}</td>
+                        <td>v{{ doc.current_version.version_number|default:1 }}</td>
+                        <td class="text-end"><a href="{% url 'pdf_editor:label_editor' doc.pk %}" class="btn btn-sm btn-primary">Open <i class="bi bi-arrow-right"></i></a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include 'partials/pagination.html' %}
+        {% else %}
+        <div class="empty-state"><p class="mb-0">No PDFs found. <a href="{% url 'pdf_editor:upload' %}">Upload one</a> to get started.</p></div>
+        {% endif %}
+    </div>
+</div>
+
+{{ initial_rules|json_script:"initial-rules-data" }}
+<div id="rule-builder-app"
+     data-preview-url="{% url 'pdf_editor:label_editor_preview' %}"
+     data-apply-url="{% url 'pdf_editor:label_editor_apply' %}"
+     data-discover-url="{% url 'pdf_editor:label_editor_discover' %}"
+     data-rule-sets-url="{% url 'pdf_editor:label_rule_sets' %}"
+     data-rule-set-detail-url-base="{% url 'pdf_editor:label_rule_set_detail' 0 %}"
+     data-initial-scope="{{ initial_scope }}"
+     data-initial-batch-id="{{ initial_batch_id }}"
+     data-initial-document-ids="{{ initial_document_ids }}">
+
+    <div class="surface-card mb-3">
+        <div class="surface-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="fw-semibold">Replacement Rules</span>
+            <div class="d-flex gap-2 align-items-center">
+                <select class="form-select form-select-sm" style="width:auto;" data-load-rule-set>
+                    <option value="">Load Rule Set...</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-soft" data-action-discover-labels><i class="bi bi-tags me-1"></i>Detected Labels</button>
+            </div>
+        </div>
+        <div class="surface-card-body">
+            <div data-discovered-labels class="mb-3" hidden>
+                <div class="small text-muted-2 mb-2" data-discovered-summary></div>
+                <div class="d-flex flex-wrap gap-2" data-discovered-chips></div>
+            </div>
+
+            <div data-rules-container></div>
+            <button type="button" class="btn btn-outline-soft btn-sm mt-1" data-action-add-rule><i class="bi bi-plus-lg me-1"></i> Add Replacement Rule</button>
+
+            <hr>
+
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label d-block">Scope</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="scope" id="ruleScopeCurrent" value="current">
+                        <label class="form-check-label" for="ruleScopeCurrent">Current PDF</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="scope" id="ruleScopeSelected" value="selected">
+                        <label class="form-check-label" for="ruleScopeSelected">Selected PDFs</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="scope" id="ruleScopeBatch" value="batch">
+                        <label class="form-check-label" for="ruleScopeBatch">Entire Batch</label>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div data-scope-batch-picker>
+                        <label class="form-label small">Batch</label>
+                        <select class="form-select" data-batch-picker>
+                            <option value="">Choose a batch...</option>
+                            {% for b in batches %}
+                            <option value="{{ b.pk }}">{{ b.name|default:b }} ({{ b.documents.count }} PDFs)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="small text-muted-2 mt-2" data-document-scope-summary></div>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 align-items-center mt-3">
+                <input type="text" class="form-control" style="max-width:240px;" data-rule-set-name placeholder="Rule set name (optional)">
+                <button type="button" class="btn btn-outline-soft" data-action-save-rule-set><i class="bi bi-save me-1"></i> Save Rule Set</button>
+                <button type="button" class="btn btn-primary ms-auto" data-action-preview><i class="bi bi-eye me-1"></i> Preview Changes</button>
+                <button type="button" class="btn btn-success" data-action-apply disabled><i class="bi bi-check2-circle me-1"></i> Apply Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div data-preview-panel></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/pdf_editor.js' %}"></script>
+<script src="{% static 'js/label_rule_builder.js' %}"></script>
+{% endblock %}

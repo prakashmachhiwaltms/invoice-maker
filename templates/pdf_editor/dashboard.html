@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}PDF Editor Dashboard{% endblock %}
+{% block page_title %}PDF Editor{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>PDF Editor</h1>
+        <p>Upload, batch-manage, and edit existing PDF invoices.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'pdf_editor:upload' %}" class="btn btn-outline-soft"><i class="bi bi-file-earmark-arrow-up me-1"></i> Upload PDFs</a>
+        <a href="{% url 'pdf_editor:find_replace' %}" class="btn btn-outline-soft"><i class="bi bi-search me-1"></i> Find &amp; Replace</a>
+        <a href="{% url 'pdf_editor:label_editor_home' %}" class="btn btn-primary"><i class="bi bi-tags me-1"></i> Label &amp; Value Editor</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg">
+        <div class="stat-card">
+            <div class="stat-label"><span>Total Batches</span><span class="stat-icon icon-tile-info"><i class="bi bi-collection"></i></span></div>
+            <div class="stat-value">{{ total_batches|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="stat-card">
+            <div class="stat-label"><span>Total PDFs</span><span class="stat-icon icon-tile-primary"><i class="bi bi-file-earmark-pdf"></i></span></div>
+            <div class="stat-value">{{ total_pdfs|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="stat-card">
+            <div class="stat-label"><span>Ready</span><span class="stat-icon icon-tile-accent"><i class="bi bi-check-circle"></i></span></div>
+            <div class="stat-value">{{ ready_count|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="stat-card">
+            <div class="stat-label"><span>Edited</span><span class="stat-icon icon-tile-warning"><i class="bi bi-pencil-square"></i></span></div>
+            <div class="stat-value">{{ edited_count|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="stat-card">
+            <div class="stat-label"><span>Failed</span><span class="stat-icon icon-tile-warning"><i class="bi bi-exclamation-triangle"></i></span></div>
+            <div class="stat-value">{{ failed_count|intcomma }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="surface-card">
+            <div class="surface-card-header">
+                <span class="fw-semibold">Recent Batches</span>
+                <a href="{% url 'pdf_editor:batch_list' %}" class="small">View all <i class="bi bi-arrow-right"></i></a>
+            </div>
+            {% if recent_batches %}
+            <div class="surface-card-body pt-2">
+                {% for batch in recent_batches %}
+                <a href="{% url 'pdf_editor:batch_detail' batch.pk %}" class="d-flex align-items-center justify-content-between py-2 {% if not forloop.last %}border-bottom{% endif %}" style="border-color:var(--color-border) !important;">
+                    <div>
+                        <div class="fw-semibold small">{{ batch.name|default:batch }}</div>
+                        <div class="text-muted-2" style="font-size:0.78rem;">{{ batch.total_files }} file(s) &middot; {{ batch.created_at|naturaltime }}</div>
+                    </div>
+                    <span class="pill {% if batch.status == 'COMPLETED' %}pill-success{% elif batch.status == 'FAILED' %}pill-danger{% else %}pill-neutral{% endif %}">
+                        {{ batch.get_status_display }}
+                    </span>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state"><div class="empty-icon"><i class="bi bi-collection"></i></div><p class="mb-0">No batches uploaded yet.</p></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="surface-card">
+            <div class="surface-card-header">
+                <span class="fw-semibold">Recently Edited PDFs</span>
+                <a href="{% url 'pdf_editor:library' %}?edited=1" class="small">View all <i class="bi bi-arrow-right"></i></a>
+            </div>
+            {% if recent_edited %}
+            <div class="table-responsive-clean" style="border:none;border-radius:0;">
+                <table class="table-clean mb-0">
+                    <thead><tr><th>Filename</th><th>Version</th><th>Last Edited</th></tr></thead>
+                    <tbody>
+                        {% for doc in recent_edited %}
+                        <tr>
+                            <td><a href="{% url 'pdf_editor:editor' doc.pk %}" class="fw-semibold">{{ doc.filename }}</a></td>
+                            <td>v{{ doc.current_version.version_number }}</td>
+                            <td class="text-muted-2 small">{{ doc.updated_at|naturaltime }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state"><div class="empty-icon"><i class="bi bi-pencil-square"></i></div><p class="mb-0">No edited PDFs yet.</p></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Invoice Generator{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="{% static 'css/app.css' %}" rel="stylesheet">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="app-shell">
+    <aside class="sidebar{% block sidebar_class %}{% endblock %}">
+        <div class="sidebar-brand">
+            <span class="brand-mark">IG</span>
+            <span>Invoice Generator</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{% url 'dashboard:index' %}" class="sidebar-link {% if request.resolver_match.view_name == 'dashboard:index' %}active{% endif %}">
+                <i class="bi bi-grid-1x2"></i> Dashboard
+            </a>
+
+            <div class="sidebar-section-label">Invoice Generator</div>
+            <a href="{% url 'invoices:upload' %}" class="sidebar-link {% if request.resolver_match.view_name == 'invoices:upload' %}active{% endif %}">
+                <i class="bi bi-cloud-upload"></i> Upload Excel
+            </a>
+            <a href="{% url 'invoices:invoice_create' %}" class="sidebar-link {% if request.resolver_match.view_name == 'invoices:invoice_create' %}active{% endif %}">
+                <i class="bi bi-file-earmark-plus"></i> Create Invoice
+            </a>
+            <a href="{% url 'invoices:invoice_list' %}" class="sidebar-link {% if request.resolver_match.view_name == 'invoices:invoice_list' %}active{% endif %}">
+                <i class="bi bi-receipt"></i> Invoice History
+            </a>
+            <a href="{% url 'invoices:batch_list' %}" class="sidebar-link {% if 'invoices:batch' in request.resolver_match.view_name %}active{% endif %}">
+                <i class="bi bi-collection"></i> Batches
+            </a>
+
+            <div class="sidebar-section-label">PDF Editor</div>
+            <a href="{% url 'pdf_editor:dashboard' %}" class="sidebar-link {% if request.resolver_match.view_name == 'pdf_editor:dashboard' %}active{% endif %}">
+                <i class="bi bi-grid-1x2"></i> PDF Dashboard
+            </a>
+            <a href="{% url 'pdf_editor:batch_list' %}" class="sidebar-link {% if 'pdf_editor:batch' in request.resolver_match.view_name %}active{% endif %}">
+                <i class="bi bi-collection"></i> Batches
+            </a>
+            <a href="{% url 'pdf_editor:library' %}" class="sidebar-link {% if request.resolver_match.view_name == 'pdf_editor:library' %}active{% endif %}">
+                <i class="bi bi-folder2-open"></i> PDF Library
+            </a>
+            <a href="{% url 'pdf_editor:find_replace' %}" class="sidebar-link {% if request.resolver_match.view_name == 'pdf_editor:find_replace' %}active{% endif %}">
+                <i class="bi bi-search"></i> Find &amp; Replace
+            </a>
+            <a href="{% url 'pdf_editor:label_editor_home' %}" class="sidebar-link {% if 'pdf_editor:label' in request.resolver_match.view_name %}active{% endif %}">
+                <i class="bi bi-tags"></i> Label &amp; Value Editor
+            </a>
+            <a href="{% url 'pdf_editor:library' %}?edited=1" class="sidebar-link">
+                <i class="bi bi-file-earmark-diff"></i> Edited PDFs
+            </a>
+
+            {% if request.user.profile.is_admin %}
+            <div class="sidebar-section-label">Settings</div>
+            <a href="{% url 'settings_app:company' %}" class="sidebar-link {% if 'settings_app' in request.resolver_match.view_name %}active{% endif %}">
+                <i class="bi bi-building-gear"></i> Company Settings
+            </a>
+            <a href="{% url 'settings_app:invoice' %}" class="sidebar-link {% if request.resolver_match.view_name == 'settings_app:invoice' %}active{% endif %}">
+                <i class="bi bi-sliders"></i> Invoice Settings
+            </a>
+            <a href="{% url 'settings_app:signatures' %}" class="sidebar-link {% if request.resolver_match.view_name == 'settings_app:signatures' %}active{% endif %}">
+                <i class="bi bi-pen"></i> Signatures
+            </a>
+
+            <div class="sidebar-section-label">Admin</div>
+            <a href="{% url 'accounts:user_list' %}" class="sidebar-link {% if 'user' in request.resolver_match.view_name %}active{% endif %}">
+                <i class="bi bi-people"></i> Users
+            </a>
+            <a href="{% url 'accounts:activity_log_list' %}" class="sidebar-link {% if request.resolver_match.view_name == 'accounts:activity_log_list' %}active{% endif %}">
+                <i class="bi bi-clock-history"></i> Activity Logs
+            </a>
+            {% endif %}
+        </nav>
+        <div class="sidebar-footer">
+            &copy; {% now "Y" %} {{ global_company_settings.company_name|default:"Invoice Generator" }}
+        </div>
+    </aside>
+    <div class="sidebar-backdrop"></div>
+
+    <div class="main-wrap">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-soft sidebar-toggle-btn" data-sidebar-toggle>
+                    <i class="bi bi-list"></i>
+                </button>
+                <span class="topbar-title">{% block page_title %}Dashboard{% endblock %}</span>
+            </div>
+            <div class="topbar-actions">
+                {% if request.user.is_authenticated %}
+                <div class="dropdown">
+                    <button class="user-chip border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="user-avatar">{{ request.user.username|slice:":1"|upper }}</span>
+                        <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+                        <span class="role-badge {% if request.user.profile.is_admin %}admin{% else %}user{% endif %}">
+                            {% if request.user.profile.is_admin %}Admin{% else %}User{% endif %}
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><a class="dropdown-item" href="{% url 'accounts:password_change' %}"><i class="bi bi-key me-2"></i>Change password</a></li>
+                        {% if request.user.profile.is_admin %}
+                        <li><a class="dropdown-item" href="{% url 'accounts:user_list' %}"><i class="bi bi-people me-2"></i>Manage users</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="{% url 'accounts:logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </header>
+
+        <main class="content-area">
+            {% block page_header %}{% endblock %}
+            {% include 'partials/messages.html' %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/app.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
