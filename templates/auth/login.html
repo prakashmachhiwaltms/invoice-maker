@@ -16,7 +16,12 @@
     </div>
     <div class="mb-3">
         <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
-        {{ form.password }}
+        <div class="input-group">
+            {{ form.password }}
+            <button class="btn btn-outline-secondary" type="button" id="togglePassword" tabindex="-1" aria-label="Toggle password visibility" style="border-color: #ced4da;">
+                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+            </button>
+        </div>
         {% if form.password.errors %}<div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>{% endif %}
     </div>
     <div class="d-flex align-items-center justify-content-between mb-4">
@@ -28,4 +33,28 @@
     </div>
     <button type="submit" class="btn btn-primary w-100">Sign in</button>
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var toggleBtn = document.getElementById('togglePassword');
+    var passwordInput = document.getElementById('{{ form.password.id_for_label }}') || document.querySelector('input[name="password"]');
+    var toggleIcon = document.getElementById('togglePasswordIcon');
+    if (toggleBtn && passwordInput && toggleIcon) {
+        toggleBtn.addEventListener('click', function () {
+            var isPassword = passwordInput.getAttribute('type') === 'password';
+            passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+            if (isPassword) {
+                toggleIcon.classList.remove('bi-eye');
+                toggleIcon.classList.add('bi-eye-slash');
+            } else {
+                toggleIcon.classList.remove('bi-eye-slash');
+                toggleIcon.classList.add('bi-eye');
+            }
+            passwordInput.focus();
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -140,4 +140,22 @@ document.addEventListener('DOMContentLoaded', function () {
             if (zoomLabel) zoomLabel.textContent = zoom + '%';
         });
     });
+
+    // ---- Password visibility toggle ----
+    document.querySelectorAll('[data-password-toggle], #togglePassword').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var group = btn.closest('.input-group') || btn.parentElement;
+            var input = group ? group.querySelector('input') : null;
+            var icon = btn.querySelector('i');
+            if (input) {
+                var isPassword = input.getAttribute('type') === 'password';
+                input.setAttribute('type', isPassword ? 'text' : 'password');
+                if (icon) {
+                    icon.classList.toggle('bi-eye', !isPassword);
+                    icon.classList.toggle('bi-eye-slash', isPassword);
+                }
+                input.focus();
+            }
+        });
+    });
 });
