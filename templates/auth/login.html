@@ -18,7 +18,7 @@
         <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
         <div class="input-group">
             {{ form.password }}
-            <button class="btn btn-outline-secondary" type="button" id="togglePassword" tabindex="-1" aria-label="Toggle password visibility" style="border-color: #ced4da;">
+            <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility()" tabindex="-1" aria-label="Toggle password visibility" style="border-color: #ced4da;">
                 <i class="bi bi-eye" id="togglePasswordIcon"></i>
             </button>
         </div>
@@ -37,24 +37,23 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    var toggleBtn = document.getElementById('togglePassword');
-    var passwordInput = document.getElementById('{{ form.password.id_for_label }}') || document.querySelector('input[name="password"]');
+function togglePasswordVisibility() {
+    var passwordInput = document.getElementById('id_password') || document.querySelector('input[name="password"]');
     var toggleIcon = document.getElementById('togglePasswordIcon');
-    if (toggleBtn && passwordInput && toggleIcon) {
-        toggleBtn.addEventListener('click', function () {
-            var isPassword = passwordInput.getAttribute('type') === 'password';
-            passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
-            if (isPassword) {
-                toggleIcon.classList.remove('bi-eye');
-                toggleIcon.classList.add('bi-eye-slash');
-            } else {
-                toggleIcon.classList.remove('bi-eye-slash');
-                toggleIcon.classList.add('bi-eye');
-            }
-            passwordInput.focus();
-        });
+    if (!passwordInput) return;
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        if (toggleIcon) {
+            toggleIcon.classList.remove('bi-eye');
+            toggleIcon.classList.add('bi-eye-slash');
+        }
+    } else {
+        passwordInput.type = 'password';
+        if (toggleIcon) {
+            toggleIcon.classList.remove('bi-eye-slash');
+            toggleIcon.classList.add('bi-eye');
+        }
     }
-});
+}
 </script>
 {% endblock %}
