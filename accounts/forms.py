@@ -15,6 +15,14 @@ class LoginForm(AuthenticationForm):
     )
     remember_me = forms.BooleanField(required=False, initial=True, label='Remember me')
 
+    def clean(self):
+        username = self.cleaned_data.get('username')
+        if username and '@' in username:
+            user = User.objects.filter(email__iexact=username).first()
+            if user:
+                self.cleaned_data['username'] = user.username
+        return super().clean()
+
 
 class UserCreateForm(forms.ModelForm):
     password1 = forms.CharField(label='Password', widget=forms.PasswordInput(attrs={'class': 'form-control'}))
