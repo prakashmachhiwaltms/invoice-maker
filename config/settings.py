@@ -16,6 +16,15 @@ else:
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-me')
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://127.0.0.1,http://localhost,http://213.21.243.130,https://213.21.243.130',
+    cast=Csv()
+)
+
+FORCE_SCRIPT_NAME = config('FORCE_SCRIPT_NAME', default=None)
+if FORCE_SCRIPT_NAME:
+    FORCE_SCRIPT_NAME = '/' + FORCE_SCRIPT_NAME.strip('/')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -104,7 +113,13 @@ TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+if FORCE_SCRIPT_NAME:
+    STATIC_URL = f'{FORCE_SCRIPT_NAME}/static/'
+    MEDIA_URL = f'{FORCE_SCRIPT_NAME}/media/'
+else:
+    STATIC_URL = 'static/'
+    MEDIA_URL = '/media/'
+
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
@@ -116,7 +131,6 @@ STORAGES = {
     },
 }
 
-MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
