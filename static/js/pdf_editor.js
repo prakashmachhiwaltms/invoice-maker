@@ -149,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function () {
         page: 1,
         pageCount: parseInt(root.getAttribute('data-page-count'), 10) || 1,
         zoom: 100,
+        autoFitted: false,
         selectedSpan: null,
         tool: 'select',
         blocks: [],
@@ -165,6 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var img = root.querySelector('[data-pdf-page-image]');
     var overlay = root.querySelector('[data-pdf-overlay]');
+    var canvasScroll = root.querySelector('.pdf-canvas-scroll');
     var canvasOuter = root.querySelector('[data-canvas-outer]');
     var canvasWrap = root.querySelector('[data-canvas-wrap]');
     var pageCurrentEl = root.querySelector('[data-page-current]');
@@ -216,6 +218,18 @@ document.addEventListener('DOMContentLoaded', function () {
         canvasOuter.style.width = (state.imageWidth * scale) + 'px';
         canvasOuter.style.height = (state.imageHeight * scale) + 'px';
         if (zoomLabel) zoomLabel.textContent = state.zoom + '%';
+    }
+
+    // Auto-fit the page to the canvas panel's width the first time it loads,
+    // so a wide/landscape page doesn't default to needing a manual zoom-out
+    // just to see it properly - only runs once per page visit, so a zoom
+    // level the user picks afterward is never overridden from under them.
+    function computeFitZoom() {
+        if (!canvasScroll || !state.imageWidth) return 100;
+        var available = canvasScroll.clientWidth - 48; // minus 24px padding each side
+        if (available <= 0) return 100;
+        var pct = Math.floor((available / state.imageWidth) * 100);
+        return Math.max(10, Math.min(100, pct));
     }
     root.querySelectorAll('[data-canvas-zoom]').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -353,6 +367,10 @@ document.addEventListener('DOMContentLoaded', function () {
         img.style.height = data.image_height + 'px';
         canvasWrap.style.width = data.image_width + 'px';
         canvasWrap.style.height = data.image_height + 'px';
+        if (!state.autoFitted) {
+            state.zoom = computeFitZoom();
+            state.autoFitted = true;
+        }
         applyZoom();
         if (pageCurrentEl) pageCurrentEl.textContent = data.page;
         if (pageTotalEl) pageTotalEl.textContent = data.page_count;
