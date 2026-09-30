@@ -2,7 +2,6 @@ import json
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
@@ -269,24 +268,7 @@ def duplicate_document(request, pk):
     if document is None:
         return HttpResponseForbidden('You do not have access to this document.')
     if request.method == 'POST':
-        field_file = document.current_file
-        field_file.open('rb')
-        try:
-            data = field_file.read()
-        finally:
-            field_file.close()
-        new_doc = PdfDocument.objects.create(
-            batch=document.batch, original_file=ContentFile(data, name=document.filename),
-            filename=document.filename, uploaded_by=request.user,
-            page_count=document.page_count, has_extractable_text=document.has_extractable_text,
-            status=document.status,
-        )
-        version = PdfVersion.objects.create(
-            document=new_doc, version_number=1, file=ContentFile(data, name=document.filename),
-            note=f'Duplicated from "{document.filename}"', created_by=request.user,
-        )
-        new_doc.current_version = version
-        new_doc.save(update_fields=['current_version'])
+        new_doc = document_service.duplicate_document(document, request.user)
         ActivityLog.log(request.user, 'PDF duplicated', obj=new_doc, description=document.filename, request=request)
         messages.success(request, f'"{document.filename}" duplicated.')
         return redirect('pdf_editor:library')
@@ -825,16 +807,21 @@ def label_editor_apply(request):
     rules = label_rule_engine.rules_from_payload(body.get('rules'))
     if not rules:
         return JsonResponse({'error': 'Add at least one replacement rule.'}, status=400)
-    result = label_rule_engine.apply_rules(documents, rules, request.user)
+    create_copies = bool(body.get('create_copies'))
+    result = label_rule_engine.apply_rules(documents, rules, request.user, create_copies=create_copies)
     ActivityLog.log(
         request.user, 'PDF bulk label rules applied',
         description=(
-            f'{len(rules)} rule(s): {result.affected} PDF(s) updated, '
+            f'{len(rules)} rule(s): {result.affected} PDF(s) '
+            f'{"copied and updated" if create_copies else "updated"}, '
             f'{result.skipped} skipped, {result.total_changes} field(s) changed'
         ),
         request=request,
     )
-    return JsonResponse({'affected': result.affected, 'skipped': result.skipped, 'total_changes': result.total_changes})
+    return JsonResponse({
+        'affected': result.affected, 'skipped': result.skipped, 'total_changes': result.total_changes,
+        'created_documents': [{'id': d.pk, 'filename': d.filename} for d in result.created_documents],
+    })
 
 
 @require_POST

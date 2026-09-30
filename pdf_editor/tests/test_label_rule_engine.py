@@ -217,6 +217,37 @@ class RuleEngineIntegrationTests(TestCase):
         self.assertEqual(preview.documents[0].status, 'skipped')
         self.assertIn('Nonexistent Label', preview.documents[0].skip_reason)
 
+    def test_create_copies_leaves_originals_untouched_and_creates_new_documents(self):
+        rules = engine.rules_from_payload([
+            {'labels': ['Supplier'], 'match_type': 'exact', 'current_value': 'ABC LTD', 'new_value': 'Vellko Media'},
+        ])
+        doc_count_before = PdfDocument.objects.count()
+
+        result = engine.apply_rules([self.doc1], rules, self.user, create_copies=True)
+
+        self.assertEqual(result.affected, 1)
+        self.assertEqual(len(result.created_documents), 1)
+        self.assertEqual(PdfDocument.objects.count(), doc_count_before + 1)
+
+        # The original is completely untouched: same version, same file bytes.
+        self.doc1.refresh_from_db()
+        self.assertEqual(self.doc1.current_version.version_number, self.version_before[self.doc1.pk])
+        self.doc1.original_file.open('rb')
+        after = self.doc1.original_file.read()
+        self.doc1.original_file.close()
+        self.assertEqual(self.originals[self.doc1.pk], after)
+        original_text = document_service.open_fitz(self.doc1)[0].get_text('text')
+        self.assertIn('ABC LTD', original_text)
+        self.assertNotIn('Vellko Media', original_text)
+
+        # The new copy has the edit and is flagged as edited (version > 1).
+        copy = result.created_documents[0]
+        self.assertNotEqual(copy.pk, self.doc1.pk)
+        self.assertTrue(copy.is_edited)
+        copy_text = document_service.open_fitz(copy)[0].get_text('text')
+        self.assertIn('Vellko Media', copy_text)
+        self.assertNotIn('ABC LTD', copy_text)
+
     def test_conflict_detection_and_priority_by_order(self):
         rules = engine.rules_from_payload([
             {'labels': ['Invoice To'], 'match_type': 'contains', 'current_value': 'TMS', 'new_value': 'Vellko'},

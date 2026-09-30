@@ -17,7 +17,7 @@ JSON rule shape (see the UI's label_rule_builder.js and views.py):
 import re
 from dataclasses import dataclass, field as dc_field
 
-from . import field_service, pdf_label_detector
+from . import document_service, field_service, pdf_label_detector
 
 MATCH_TYPES = ('any', 'exact', 'contains', 'starts_with', 'ends_with', 'not_equal', 'regex')
 
@@ -222,26 +222,43 @@ class ApplyResult:
     affected: int = 0
     skipped: int = 0
     total_changes: int = 0
+    created_documents: list = dc_field(default_factory=list)  # only populated when create_copies=True
 
 
-def apply_rules(documents, rules, user):
+def apply_rules(documents, rules, user, create_copies=False):
     """Recomputes matches fresh (never trusts a client-held preview) and
-    applies at most one new PdfVersion per affected document (§30)."""
+    applies at most one new PdfVersion per affected document (§30).
+
+    With `create_copies=True`, a matched document is first duplicated (see
+    document_service.duplicate_document) and the edits are applied to that
+    new copy instead - the source document is left completely untouched.
+    Matches are recomputed against the copy's own (freshly synced) fields
+    rather than reusing the source's, since applying the source's PdfField
+    rows to a different PdfDocument would silently edit the wrong row.
+    """
     result = ApplyResult()
     for document in documents:
         matches = match_document(document, rules)
         if not matches:
             result.skipped += 1
             continue
+
+        target = document
+        if create_copies:
+            target = document_service.duplicate_document(document, user)
+            matches = match_document(target, rules)
+
         edits = []
         for match in matches:
             rule = rules[match.winning_rule_index]
             new_label, new_separator, new_value = resolved_replacement(rule, match.field)
             edits.append((match.field, new_label, new_separator, new_value))
-        version = field_service.apply_multiple_field_edits(document, user, edits)
+        version = field_service.apply_multiple_field_edits(target, user, edits)
         if version is not None:
             result.affected += 1
             result.total_changes += len(edits)
+            if create_copies:
+                result.created_documents.append(target)
         else:
             result.skipped += 1
     return result

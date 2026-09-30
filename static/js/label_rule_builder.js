@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
         scope: root.getAttribute('data-initial-scope') || 'batch',
         batchId: root.getAttribute('data-initial-batch-id') || '',
         documentIds: root.getAttribute('data-initial-document-ids') || '',
+        createCopies: false,
         lastPreview: null,
     };
 
@@ -241,9 +242,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (batchPicker) {
         batchPicker.addEventListener('change', function () { state.batchId = batchPicker.value; });
     }
+    root.querySelectorAll('input[name=apply_target]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            state.createCopies = radio.value === 'copy';
+        });
+    });
 
     function buildScopePayload() {
-        return { scope: state.scope, batch_id: state.batchId, document_ids: state.documentIds };
+        return { scope: state.scope, batch_id: state.batchId, document_ids: state.documentIds, create_copies: state.createCopies };
     }
 
     // ---- Preview ----
@@ -334,14 +340,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     applyBtn.addEventListener('click', function () {
         if (!state.lastPreview) return;
-        var msg = 'Apply ' + state.lastPreview.total_matches + ' change(s) across ' + state.lastPreview.affected_pdfs +
-            ' PDF(s)? Each affected PDF gets a new version - originals are kept.';
+        var msg = state.createCopies
+            ? 'Apply ' + state.lastPreview.total_matches + ' change(s) across ' + state.lastPreview.affected_pdfs +
+                ' PDF(s)? A new edited copy is created for each affected PDF - the originals are left untouched.'
+            : 'Apply ' + state.lastPreview.total_matches + ' change(s) across ' + state.lastPreview.affected_pdfs +
+                ' PDF(s)? Each affected PDF gets a new version - originals are kept.';
         if (!window.confirm(msg)) return;
         var payload = buildScopePayload();
         payload.rules = validRules();
         postJson(root.getAttribute('data-apply-url'), payload).then(function (data) {
-            window.alert('Updated ' + data.affected + ' PDF(s), ' + data.total_changes + ' field(s) changed. ' + data.skipped + ' PDF(s) skipped (no match).');
-            window.location.href = '/pdf-editor/library/';
+            var summary = (state.createCopies ? 'Created ' : 'Updated ') + data.affected + ' PDF(s), ' +
+                data.total_changes + ' field(s) changed. ' + data.skipped + ' PDF(s) skipped (no match).';
+            window.alert(summary);
+            window.location.href = state.createCopies ? '/pdf-editor/library/?edited=1' : '/pdf-editor/library/';
         });
     });
 

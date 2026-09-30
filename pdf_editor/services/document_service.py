@@ -19,6 +19,33 @@ def open_fitz(document: PdfDocument):
     return extraction.open_document(document.current_file)
 
 
+def duplicate_document(document: PdfDocument, user, note: str = None) -> PdfDocument:
+    """Create an independent copy of `document`'s CURRENT version as its own
+    new PdfDocument (starting at its own version 1), leaving the source
+    completely untouched. Used both by the Library's "Duplicate" action and
+    by the bulk rule engine's "create edited copies instead of updating in
+    place" option."""
+    field_file = document.current_file
+    field_file.open('rb')
+    try:
+        data = field_file.read()
+    finally:
+        field_file.close()
+    new_doc = PdfDocument.objects.create(
+        batch=document.batch, original_file=ContentFile(data, name=document.filename),
+        filename=document.filename, uploaded_by=user,
+        page_count=document.page_count, has_extractable_text=document.has_extractable_text,
+        status=document.status,
+    )
+    version = PdfVersion.objects.create(
+        document=new_doc, version_number=1, file=ContentFile(data, name=document.filename),
+        note=note or f'Duplicated from "{document.filename}"', created_by=user,
+    )
+    new_doc.current_version = version
+    new_doc.save(update_fields=['current_version'])
+    return new_doc
+
+
 def _versioned_filename(document: PdfDocument, version_number: int) -> str:
     base = os.path.splitext(document.filename)[0]
     return f'{base}_v{version_number}.pdf'

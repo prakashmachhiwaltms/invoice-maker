@@ -74,6 +74,21 @@
 
             <div class="row g-3">
                 <div class="col-md-5">
+                    <label class="form-label d-block">Apply changes to</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="apply_target" id="ruleTargetExisting" value="existing" checked>
+                        <label class="form-check-label" for="ruleTargetExisting">Existing PDF(s)/batch <span class="text-muted-2">(new version, in place)</span></label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="apply_target" id="ruleTargetCopy" value="copy">
+                        <label class="form-check-label" for="ruleTargetCopy">A new copy <span class="text-muted-2">(originals unchanged, copies land in Edited PDFs)</span></label>
+                    </div>
+                </div>
+                <div class="col-md-7"></div>
+            </div>
+
+            <div class="row g-3 mt-0">
+                <div class="col-md-5">
                     <label class="form-label d-block">Scope</label>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="scope" id="ruleScopeCurrent" value="current">
