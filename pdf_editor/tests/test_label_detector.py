@@ -93,6 +93,41 @@ class LabelDetectorTests(TestCase):
         self.assertNotIn('TMS', labels)
         self.assertNotIn('HARSHIT SHRIVASTAVA', labels)
 
+    def test_two_column_bare_label_does_not_absorb_other_column(self):
+        """Regression test for a live-reported bug: on a two-column layout
+        (e.g. seller info on the left, a "Bill To" recipient block on the
+        right), a bare label's multi-line absorption must not sweep in
+        lines from the OTHER column just because they land at a similar Y
+        position. It previously merged both columns' text into one garbled
+        value and - worse - corrupted the bbox used to re-insert an edited
+        value, so editing the field visually moved it into the wrong
+        column and deleted unrelated text from the other one.
+        """
+        doc = fitz.open()
+        page = doc.new_page()
+        left = [
+            (50, 100, 'Anthropic, PBC'),
+            (50, 115, '548 Market Street'),
+            (50, 130, 'San Francisco, California 94104'),
+            (50, 145, 'support@anthropic.com'),
+        ]
+        right = [
+            (300, 105, 'Bill To'),
+            (300, 120, 'Deepak Verma'),
+            (300, 135, 'Bhopal, Madhya Pradesh'),
+        ]
+        for x, y, text in left + right:
+            page.insert_text((x, y), text, fontsize=10, fontname='helv')
+
+        candidates = det.detect_candidates(doc)
+        bill_to = next((c for c in candidates if c['label'] == 'Bill To'), None)
+        self.assertIsNotNone(bill_to, f'no "Bill To" field found in {candidates}')
+        self.assertIn('Deepak Verma', bill_to['value'])
+        self.assertIn('Bhopal, Madhya Pradesh', bill_to['value'])
+        self.assertNotIn('Anthropic', bill_to['value'])
+        self.assertNotIn('548 Market Street', bill_to['value'])
+        self.assertNotIn('support@anthropic.com', bill_to['value'])
+
     def test_two_column_same_y_do_not_collide(self):
         """Two fields with the same label at the same y but different x (a
         common two-column supplier/recipient layout) must both be detected."""

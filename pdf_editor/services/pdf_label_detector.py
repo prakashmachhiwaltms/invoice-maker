@@ -29,6 +29,7 @@ COMMON_LABEL_WORDS = (
 
 MAX_VERTICAL_GAP_RATIO = 1.8  # multiple of line height allowed when absorbing continuation lines
 MAX_ABSORBED_LINES = 10
+MAX_COLUMN_X_DRIFT = 60  # points a continuation line's left edge may drift from its label's, so a two-column layout's other column (100+pt away) is never absorbed
 
 
 def _page_lines(doc, page_index):
@@ -204,6 +205,16 @@ def _absorb_multiline_values(lines, candidates):
             gap = nxt['y'] - last_y
             if gap > last_height * MAX_VERTICAL_GAP_RATIO or gap < 0:
                 break
+            # All lines on the page are sorted by Y regardless of column, so
+            # a two-column layout interleaves this label's own continuation
+            # lines with the OTHER column's lines at nearby Y positions (e.g.
+            # a "Bill To" on the right absorbing the seller's address from
+            # the left just because it falls at a similar height). Skip
+            # (don't absorb, but keep scanning - the real continuation may
+            # be a few lines further down) anything that isn't roughly
+            # under the label horizontally.
+            if abs(nxt['x'] - line['x']) > MAX_COLUMN_X_DRIFT:
+                continue
             # Only stop absorbing on a genuine separator-based match (an
             # explicit ":"/"-"/etc. actually present) - NOT merely because a
             # line happens to look like a short bare label. Real address
