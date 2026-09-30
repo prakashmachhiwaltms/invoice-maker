@@ -145,6 +145,31 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     var csrftoken = getCookie('csrftoken');
 
+    // ---- Selectable PDF text ----
+    // Lays an invisible, precisely width-fitted text node inside an
+    // absolutely-positioned container so the page image's text can be
+    // dragged over and copied like a normal text page. The container's own
+    // box (used for click/hover/drag hit-testing) is left untouched -
+    // only this inner node is scaled, so click accuracy never regresses.
+    var measureCtx = document.createElement('canvas').getContext('2d');
+    function measureTextWidth(text, fontPx) {
+        measureCtx.font = fontPx + 'px sans-serif';
+        return measureCtx.measureText(text).width;
+    }
+    function addSelectableText(container, text, widthPx, heightPx) {
+        if (!text) return;
+        var t = document.createElement('span');
+        t.className = 'pdf-selectable-text';
+        t.textContent = text;
+        var fontSizePx = Math.max(heightPx * 0.82, 6);
+        t.style.fontSize = fontSizePx + 'px';
+        t.style.lineHeight = heightPx + 'px';
+        var naturalWidth = measureTextWidth(text, fontSizePx) || 1;
+        var factor = widthPx > 0 ? widthPx / naturalWidth : 1;
+        t.style.transform = 'scaleX(' + Math.max(0.05, Math.min(20, factor)) + ')';
+        container.appendChild(t);
+    }
+
     var state = {
         page: 1,
         pageCount: parseInt(root.getAttribute('data-page-count'), 10) || 1,
@@ -316,8 +341,15 @@ document.addEventListener('DOMContentLoaded', function () {
             box.style.width = (span.width * scaleX()) + 'px';
             box.style.height = (span.height * scaleY()) + 'px';
             box.title = span.text;
+            addSelectableText(box, span.text, span.width * scaleX(), span.height * scaleY());
             box.addEventListener('click', function (e) {
                 e.stopPropagation();
+                // A click that ends a text-selection drag still fires here
+                // (mousedown/mouseup land on the same box); treating it as
+                // an edit-select would call renderOverlay() below, which
+                // rebuilds the DOM and wipes the selection the user just
+                // made. Leave an active selection alone instead.
+                if (window.getSelection().toString()) return;
                 onSpanClick(span);
             });
             attachDrag(box, span);
@@ -345,6 +377,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     overlay.addEventListener('click', function (e) {
+        if (window.getSelection().toString()) return;
         if (state.tool === 'add') {
             var rect = canvasWrap.getBoundingClientRect();
             var scale = state.zoom / 100;

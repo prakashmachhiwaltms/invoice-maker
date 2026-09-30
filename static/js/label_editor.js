@@ -14,6 +14,34 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // ---- Selectable PDF text ----
+    // Lays an invisible, precisely width-fitted text node inside an
+    // absolutely-positioned container so the page image's text can be
+    // dragged over and copied like a normal text page. The container's own
+    // box (used for click/hover hit-testing, when it's a field box) is left
+    // untouched - only this inner node is scaled, so click accuracy never
+    // regresses. (See pdf_editor.js's identical helper for the Visual
+    // Editor, which embeds this directly into its span boxes instead of
+    // using a separate full-page layer.)
+    var measureCtx = document.createElement('canvas').getContext('2d');
+    function measureTextWidth(text, fontPx) {
+        measureCtx.font = fontPx + 'px sans-serif';
+        return measureCtx.measureText(text).width;
+    }
+    function addSelectableText(container, text, widthPx, heightPx) {
+        if (!text) return;
+        var t = document.createElement('span');
+        t.className = 'pdf-selectable-text';
+        t.textContent = text;
+        var fontSizePx = Math.max(heightPx * 0.82, 6);
+        t.style.fontSize = fontSizePx + 'px';
+        t.style.lineHeight = heightPx + 'px';
+        var naturalWidth = measureTextWidth(text, fontSizePx) || 1;
+        var factor = widthPx > 0 ? widthPx / naturalWidth : 1;
+        t.style.transform = 'scaleX(' + Math.max(0.05, Math.min(20, factor)) + ')';
+        container.appendChild(t);
+    }
+
     var state = {
         page: 1,
         pageCount: parseInt(root.getAttribute('data-page-count'), 10) || 1,
@@ -35,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var img = root.querySelector('[data-pdf-page-image]');
     var overlay = root.querySelector('[data-pdf-overlay]');
+    var textLayer = root.querySelector('[data-pdf-text-layer]');
     var canvasScroll = root.querySelector('.pdf-canvas-scroll');
     var canvasOuter = root.querySelector('[data-canvas-outer]');
     var canvasWrap = root.querySelector('[data-canvas-wrap]');
@@ -146,6 +175,26 @@ document.addEventListener('DOMContentLoaded', function () {
         if (pageCurrentEl) pageCurrentEl.textContent = data.page;
         if (pageTotalEl) pageTotalEl.textContent = data.page_count;
         renderOverlay();
+        renderTextLayer();
+    }
+
+    // All of the page's text (not just detected fields) laid out as
+    // invisible selectable text, so the rest of the invoice can be copied
+    // too. Sits beneath the field-box overlay, which lets clicks in the
+    // empty gaps between field boxes fall through to it.
+    function renderTextLayer() {
+        if (!textLayer) return;
+        textLayer.innerHTML = '';
+        state.blocks.forEach(function (span) {
+            var wrap = document.createElement('span');
+            wrap.style.position = 'absolute';
+            wrap.style.left = (span.x * scaleX()) + 'px';
+            wrap.style.top = (span.y * scaleY()) + 'px';
+            wrap.style.width = (span.width * scaleX()) + 'px';
+            wrap.style.height = (span.height * scaleY()) + 'px';
+            addSelectableText(wrap, span.text, span.width * scaleX(), span.height * scaleY());
+            textLayer.appendChild(wrap);
+        });
     }
 
     function loadPage(n) {
@@ -224,6 +273,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 box.title = span.text;
                 box.addEventListener('click', function (e) {
                     e.stopPropagation();
+                    if (window.getSelection().toString()) return;
                     onManualSpanClick(span);
                 });
                 overlay.appendChild(box);
@@ -251,19 +301,28 @@ document.addEventListener('DOMContentLoaded', function () {
         box.title = field.label + ': ' + field.value;
         box.addEventListener('click', function (e) {
             e.stopPropagation();
+            if (window.getSelection().toString()) return;
             selectField(field.id, false);
         });
         return box;
     }
 
-    overlay.addEventListener('click', function () {
+    function deselectOnBackgroundClick() {
+        if (window.getSelection().toString()) return;
         if (state.mode === 'select') {
             state.selectedFieldId = null;
             showPanel('empty');
             renderFieldsTable();
             renderOverlay();
         }
-    });
+    }
+    overlay.addEventListener('click', deselectOnBackgroundClick);
+    // .pdf-overlay has pointer-events: none outside of its field boxes (so
+    // clicks in the gaps reach the selectable text layer underneath), so
+    // clicks on blank/non-field areas land on the text layer instead - it
+    // needs the same background-click handler to keep "click empty space to
+    // deselect" working.
+    if (textLayer) textLayer.addEventListener('click', deselectOnBackgroundClick);
 
     // ---- Field selection + edit panel ----
     var customSepSelect = root.querySelector('[data-field-separator-select]');
