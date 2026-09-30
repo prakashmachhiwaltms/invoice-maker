@@ -96,14 +96,14 @@ def normalize_label_key(label_text):
     return re.sub(r'\s+', ' ', label_text.strip().lower()).strip(' .:-')
 
 
-def _span_font_info(span):
+def _span_font_info(span, prefix=''):
     font_name = span.get('font', '')
     flags = span.get('flags', 0)
     return {
-        'font': base14_font(font_name, flags),
-        'font_size': round(span.get('size', 10), 2),
-        'font_weight': 'bold' if is_bold(font_name, flags) else 'normal',
-        'color': list(normalize_color(span.get('color'))),
+        prefix + 'font': base14_font(font_name, flags),
+        prefix + 'font_size': round(span.get('size', 10), 2),
+        prefix + 'font_weight': 'bold' if is_bold(font_name, flags) else 'normal',
+        prefix + 'color': list(normalize_color(span.get('color'))),
     }
 
 
@@ -134,6 +134,7 @@ def _try_two_span_split(line):
         'label_bbox': label_bbox, 'value_bbox': value_bbox,
         'confidence': _confidence_for(label_text, sep), 'stacked': False,
         **_span_font_info(value_spans[0]),
+        **_span_font_info(first, prefix='label_'),
     }
 
 
@@ -167,6 +168,7 @@ def _try_single_span_split(line):
         'label_bbox': label_bbox, 'value_bbox': value_bbox,
         'confidence': _confidence_for(label_text, sep), 'stacked': False,
         **_span_font_info(first_span),
+        **_span_font_info(first_span, prefix='label_'),
     }
 
 
@@ -235,12 +237,14 @@ def _absorb_multiline_values(lines, candidates):
         x1 = max(l['x'] + l['width'] for l in value_lines)
         y1 = max(l['y'] + l['height'] for l in value_lines)
         first_span = value_lines[0]['spans'][0]
+        label_span = line['spans'][0]
         candidates.append({
             'page': line['page'], 'label': label_text, 'value': value_text, 'separator': sep,
             'label_bbox': {'x': line['x'], 'y': line['y'], 'width': line['width'], 'height': line['height']},
             'value_bbox': {'x': x0, 'y': y0, 'width': x1 - x0, 'height': y1 - y0},
             'confidence': _confidence_for(label_text, sep, absorbed=True), 'stacked': True,
             **_span_font_info(first_span),
+            **_span_font_info(label_span, prefix='label_'),
         })
 
 

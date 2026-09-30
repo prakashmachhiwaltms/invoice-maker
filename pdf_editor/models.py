@@ -160,10 +160,21 @@ class PdfField(models.Model):
     label_bbox = models.JSONField(default=dict, blank=True)
     value_bbox = models.JSONField(default=dict, blank=True)
 
+    # The value's own styling (also used as the whole line's styling for an
+    # inline "Label: Value" pair, where label and value share one font).
     font = models.CharField(max_length=100, blank=True)
     font_size = models.FloatField(default=10)
     font_weight = models.CharField(max_length=10, blank=True, default='normal')
     color = models.JSONField(default=list, blank=True)
+
+    # The label's OWN styling, captured separately since a stacked field's
+    # bare-label heading is commonly bold while its absorbed value isn't -
+    # reinserting both with just the value's font would silently un-bold the
+    # label on every edit.
+    label_font = models.CharField(max_length=100, blank=True)
+    label_font_size = models.FloatField(default=10)
+    label_font_weight = models.CharField(max_length=10, blank=True, default='normal')
+    label_color = models.JSONField(default=list, blank=True)
 
     confidence = models.CharField(max_length=10, choices=CONFIDENCE_CHOICES, default=CONFIDENCE_MEDIUM)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_DETECTED)

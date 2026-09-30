@@ -181,6 +181,62 @@ class FieldServiceTests(TestCase):
         self.assertIn('Anthropic, PBC', text)
         self.assertIn('548 Market Street', text)
 
+    def _make_bold_label_document(self):
+        """A bold "Bill To" heading (narrow right column) with a multi-line
+        address value below it, reproducing a live-reported bug: editing
+        the value un-bolded the label and let the wrapped value spill far
+        past its original column width."""
+        doc = fitz.open()
+        page = doc.new_page()
+        page.insert_text((300, 100), 'Bill To', fontsize=10, fontname='hebo')
+        page.insert_text((300, 115), 'Deepak Verma', fontsize=10, fontname='helv')
+        page.insert_text((300, 130), 'Bhopal, MP', fontsize=10, fontname='helv')
+        data = doc.tobytes()
+        document = PdfDocument.objects.create(
+            original_file=ContentFile(data, name='BOLDLABEL-001.pdf'), filename='BOLDLABEL-001.pdf',
+            uploaded_by=self.user, page_count=1, has_extractable_text=True, status=PdfDocument.STATUS_READY,
+        )
+        version = PdfVersion.objects.create(
+            document=document, version_number=1, file=ContentFile(data, name='BOLDLABEL-001.pdf'),
+            note='Original upload', created_by=self.user,
+        )
+        document.current_version = version
+        document.save(update_fields=['current_version'])
+        return document
+
+    def test_stacked_label_edit_keeps_bold_label_and_wraps_within_original_width(self):
+        doc = self._make_bold_label_document()
+        field_service.sync_detected_fields(doc)
+        target = PdfField.objects.get(document=doc, label='Bill To')
+        self.assertTrue(target.is_stacked)
+        original_value_width = target.value_bbox['width']
+
+        long_value = ('2nd floor, Phoenix Corporate Park, Narmadapuram Rd, '
+                      'opposite Vrindavan garden, Bhopal, Madhya Pradesh 462026')
+        field_service.apply_field_edit(doc, self.user, target.pk, None, None, long_value)
+        doc.refresh_from_db()
+
+        page_dict = document_service.open_fitz(doc)[0].get_text('dict')
+        spans = [s for b in page_dict['blocks'] for l in b.get('lines', []) for s in l['spans']]
+
+        label_spans = [s for s in spans if s['text'].strip() == 'Bill To']
+        self.assertTrue(label_spans, 'no "Bill To" span found after edit')
+        self.assertTrue(label_spans[0]['flags'] & (1 << 4), 'label lost its bold flag after the edit')
+
+        value_spans = [s for s in spans if 'Phoenix Corporate Park' in s['text'] or 'Vrindavan' in s['text']
+                       or 'Bhopal' in s['text'] or 'Madhya Pradesh' in s['text']]
+        self.assertTrue(value_spans, 'no wrapped value text found after edit')
+        # Every wrapped line must stay close to the ORIGINAL column's width,
+        # not spill out toward the far side of the page (the bug let it
+        # extend ~250pt+ further right, well past a reasonable margin).
+        for s in value_spans:
+            line_width = s['bbox'][2] - s['bbox'][0]
+            self.assertLessEqual(
+                line_width, original_value_width + 60,
+                f'wrapped line "{s["text"]!r}" (width {line_width:.1f}) spilled past the original '
+                f'column width ({original_value_width:.1f}) by more than a small margin',
+            )
+
     def test_manual_field_creation_and_reject_survive_resync(self):
         doc = self._make_document()
         field_service.sync_detected_fields(doc)

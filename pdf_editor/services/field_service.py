@@ -63,6 +63,8 @@ def sync_detected_fields(document: PdfDocument):
                 label_bbox=cand['label_bbox'], value_bbox=cand['value_bbox'],
                 font=cand['font'], font_size=cand['font_size'], font_weight=cand['font_weight'],
                 color=cand['color'], confidence=cand['confidence'], is_stacked=cand.get('stacked', False),
+                label_font=cand.get('label_font', ''), label_font_size=cand.get('label_font_size', 10),
+                label_font_weight=cand.get('label_font_weight', 'normal'), label_color=cand.get('label_color', []),
                 status=PdfField.STATUS_DETECTED, is_detected=True, is_manual=False,
             )
         elif existing_field.status in (PdfField.STATUS_DETECTED, PdfField.STATUS_CONFIRMED, PdfField.STATUS_EDITED):
@@ -77,6 +79,10 @@ def sync_detected_fields(document: PdfDocument):
             existing_field.color = cand['color']
             existing_field.confidence = cand['confidence']
             existing_field.is_stacked = cand.get('stacked', False)
+            existing_field.label_font = cand.get('label_font', '')
+            existing_field.label_font_size = cand.get('label_font_size', 10)
+            existing_field.label_font_weight = cand.get('label_font_weight', 'normal')
+            existing_field.label_color = cand.get('label_color', [])
             existing_field.save()
         # REJECTED / MANUAL rows: never touched by re-detection.
 
@@ -132,17 +138,31 @@ def apply_multiple_field_edits(document: PdfDocument, user, edits):
         old_text = _format_field_text(pdf_field.label, pdf_field.separator, pdf_field.value, pdf_field.is_stacked)
         new_text = _format_field_text(new_label, new_separator, new_value, pdf_field.is_stacked)
         bbox = _union_bbox(pdf_field.label_bbox, pdf_field.value_bbox)
-        page = doc[pdf_field.page]
-        page_width = page.rect.width
-        extra_width = max(0, min(250, page_width - bbox[2] - 20))
         color = tuple(pdf_field.color) if pdf_field.color else (0, 0, 0)
 
-        pdf_ops.replace_region_autofit(
-            doc, pdf_field.page, bbox, new_text,
-            font_name=pdf_field.font or 'helv', max_size=pdf_field.font_size or 10,
-            min_size=min(MIN_FONT_SIZE, pdf_field.font_size or 10), color=color,
-            extra_width=extra_width,
-        )
+        if pdf_field.is_stacked:
+            # Reinsert the label and value separately, each with its OWN
+            # font, and keep the value confined to its original column
+            # width instead of the wider box below (which is meant for one
+            # inline value, not a whole wrapped address block).
+            label_color = tuple(pdf_field.label_color) if pdf_field.label_color else (0, 0, 0)
+            pdf_ops.replace_stacked_region(
+                doc, pdf_field.page, pdf_field.label_bbox, pdf_field.value_bbox, new_label, new_value,
+                label_font=pdf_field.label_font or 'helv', label_size=pdf_field.label_font_size or 10,
+                label_color=label_color,
+                value_font=pdf_field.font or 'helv', value_max_size=pdf_field.font_size or 10,
+                value_min_size=min(MIN_FONT_SIZE, pdf_field.font_size or 10), value_color=color,
+            )
+        else:
+            page = doc[pdf_field.page]
+            page_width = page.rect.width
+            extra_width = max(0, min(250, page_width - bbox[2] - 20))
+            pdf_ops.replace_region_autofit(
+                doc, pdf_field.page, bbox, new_text,
+                font_name=pdf_field.font or 'helv', max_size=pdf_field.font_size or 10,
+                min_size=min(MIN_FONT_SIZE, pdf_field.font_size or 10), color=color,
+                extra_width=extra_width,
+            )
         prepared.append((pdf_field, old_text, new_text, new_label, new_separator, new_value, bbox))
 
     note = f'{len(prepared)} field(s) changed' if len(prepared) > 1 else f'Field "{prepared[0][0].label}" changed: "{prepared[0][1]}" -> "{prepared[0][2]}"'
