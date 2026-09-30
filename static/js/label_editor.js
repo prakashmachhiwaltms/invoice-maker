@@ -91,10 +91,36 @@ document.addEventListener('DOMContentLoaded', function () {
         var pct = Math.floor((available / state.imageWidth) * 100);
         return Math.max(10, Math.min(100, pct));
     }
+
+    // The canvas panel's real width isn't available synchronously right
+    // after navigation - the surrounding page layout (sidebar, grid tracks)
+    // can still be settling for a few frames. ResizeObserver lets us wait
+    // for that to actually finish (debounced) instead of guessing a fixed
+    // number of frames to wait, then locks in the fit exactly once.
+    function scheduleAutoFit() {
+        if (!window.ResizeObserver) {
+            state.zoom = computeFitZoom();
+            state.autoFitted = true;
+            applyZoom();
+            return;
+        }
+        var settleTimer = null;
+        var observer = new ResizeObserver(function () {
+            if (settleTimer) clearTimeout(settleTimer);
+            settleTimer = setTimeout(function () {
+                if (state.autoFitted) return;
+                state.zoom = computeFitZoom();
+                state.autoFitted = true;
+                applyZoom();
+                observer.disconnect();
+            }, 120);
+        });
+        observer.observe(canvasScroll);
+    }
     root.querySelectorAll('[data-canvas-zoom]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             var delta = parseInt(btn.getAttribute('data-canvas-zoom'), 10);
-            state.zoom = Math.max(50, Math.min(200, state.zoom + delta));
+            state.zoom = Math.max(10, Math.min(100, state.zoom + delta));
             applyZoom();
         });
     });
@@ -113,10 +139,10 @@ document.addEventListener('DOMContentLoaded', function () {
         canvasWrap.style.width = data.image_width + 'px';
         canvasWrap.style.height = data.image_height + 'px';
         if (!state.autoFitted) {
-            state.zoom = computeFitZoom();
-            state.autoFitted = true;
+            scheduleAutoFit();
+        } else {
+            applyZoom();
         }
-        applyZoom();
         if (pageCurrentEl) pageCurrentEl.textContent = data.page;
         if (pageTotalEl) pageTotalEl.textContent = data.page_count;
         renderOverlay();
