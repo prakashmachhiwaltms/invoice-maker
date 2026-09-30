@@ -39,7 +39,7 @@ def duplicate_document(document: PdfDocument, user, note: str = None) -> PdfDocu
     )
     version = PdfVersion.objects.create(
         document=new_doc, version_number=1, file=ContentFile(data, name=document.filename),
-        note=note or f'Duplicated from "{document.filename}"', created_by=user,
+        note=_truncate_note(note or f'Duplicated from "{document.filename}"'), created_by=user,
     )
     new_doc.current_version = version
     new_doc.save(update_fields=['current_version'])
@@ -49,6 +49,21 @@ def duplicate_document(document: PdfDocument, user, note: str = None) -> PdfDocu
 def _versioned_filename(document: PdfDocument, version_number: int) -> str:
     base = os.path.splitext(document.filename)[0]
     return f'{base}_v{version_number}.pdf'
+
+
+NOTE_MAX_LENGTH = 255  # matches PdfVersion.note's CharField max_length
+
+
+def _truncate_note(note: str) -> str:
+    """PdfVersion.note is a short CharField, but callers build it from
+    arbitrary-length field/span text (e.g. a whole absorbed multi-line
+    address block) - truncate defensively so a long value can never turn an
+    edit into a 500 (a DB-level "data too long" error) instead of just a
+    slightly clipped note."""
+    note = note or ''
+    if len(note) <= NOTE_MAX_LENGTH:
+        return note
+    return note[:NOTE_MAX_LENGTH - 1].rstrip() + '…'
 
 
 @transaction.atomic
@@ -68,7 +83,7 @@ def _save_new_version(document: PdfDocument, fitz_doc, user, note: str) -> PdfVe
         document=document,
         version_number=new_number,
         file=ContentFile(pdf_bytes, name=_versioned_filename(document, new_number)),
-        note=note,
+        note=_truncate_note(note),
         created_by=user,
     )
     document.current_version = version

@@ -70,6 +70,25 @@ class FieldServiceTests(TestCase):
         self.assertEqual(target.original_label, 'Name')
         self.assertEqual(target.original_value, 'TMS PVT LTD')
 
+    def test_apply_field_edit_with_very_long_value_does_not_error(self):
+        """Regression test for a live-reported 500: PdfVersion.note is a
+        short CharField, but its text is built from the field's full
+        label/value - a long absorbed multi-line value (e.g. a whole
+        address block) could exceed the column's max_length and turn a
+        normal edit into a raw "Data too long" database error instead of
+        completing (with the note just truncated)."""
+        doc = self._make_document()
+        field_service.sync_detected_fields(doc)
+        target = PdfField.objects.get(document=doc, label='Name', value='TMS PVT LTD')
+
+        long_value = 'A very long replacement value ' * 15  # ~465 chars
+        version = field_service.apply_field_edit(doc, self.user, target.pk, None, None, long_value)
+
+        self.assertIsNotNone(version)
+        self.assertLessEqual(len(version.note), 255)
+        doc.refresh_from_db()
+        self.assertEqual(doc.current_version.version_number, 2)
+
     def test_original_file_untouched_after_edit(self):
         doc = self._make_document()
         original_bytes = doc.original_file.read()

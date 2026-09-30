@@ -386,9 +386,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function onSpanClick(span) {
         if (state.tool === 'hide') {
-            if (window.confirm('Hide/delete "' + span.text + '" from the PDF?')) {
-                callApi(root.getAttribute('data-hide-url'), { page: state.page, span_id: span.id }).then(onPageDataLoaded);
-            }
+            window.UiFeedback.showConfirm('Hide/delete "' + span.text + '" from the PDF?', { danger: true, confirmText: 'Hide' }).then(function (ok) {
+                if (ok) callApi(root.getAttribute('data-hide-url'), { page: state.page, span_id: span.id }).then(onPageDataLoaded);
+            });
             return;
         }
         if (state.tool !== 'select') return;
@@ -435,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return resp.json();
         }).catch(function (err) {
-            window.alert(err.message || 'Something went wrong.');
+            window.UiFeedback.showToast(err.message || 'Something went wrong.', { variant: 'error' });
             throw err;
         });
     }
@@ -489,10 +489,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     root.querySelector('[data-action-hide]').addEventListener('click', function () {
         if (!state.selectedSpan) return;
-        if (!window.confirm('Hide/delete this text from the PDF?')) return;
-        callApi(root.getAttribute('data-hide-url'), {
-            page: state.page, span_id: state.selectedSpan.id,
-        }).then(onPageDataLoaded);
+        window.UiFeedback.showConfirm('Hide/delete this text from the PDF?', { danger: true, confirmText: 'Hide' }).then(function (ok) {
+            if (!ok) return;
+            callApi(root.getAttribute('data-hide-url'), {
+                page: state.page, span_id: state.selectedSpan.id,
+            }).then(onPageDataLoaded);
+        });
     });
 
     root.querySelector('[data-action-apply-move]').addEventListener('click', function () {
@@ -573,12 +575,14 @@ document.addEventListener('DOMContentLoaded', function () {
         var find = root.querySelector('[data-find-input]').value.trim();
         var replace = root.querySelector('[data-replace-all-input]').value;
         if (!find) return;
-        if (!window.confirm('Replace every occurrence of "' + find + '" in this PDF?')) return;
-        callApi(root.getAttribute('data-replace-all-url'), {
-            page: state.page, find_text: find, replace_text: replace,
-        }).then(function (data) {
-            onPageDataLoaded(data);
-            window.alert(data.replaced_count + ' replacement(s) made.');
+        window.UiFeedback.showConfirm('Replace every occurrence of "' + find + '" in this PDF?', { confirmText: 'Replace' }).then(function (ok) {
+            if (!ok) return;
+            callApi(root.getAttribute('data-replace-all-url'), {
+                page: state.page, find_text: find, replace_text: replace,
+            }).then(function (data) {
+                onPageDataLoaded(data);
+                window.UiFeedback.showToast(data.replaced_count + ' replacement(s) made.', { variant: 'success' });
+            });
         });
     });
 

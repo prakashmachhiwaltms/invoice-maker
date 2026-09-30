@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return resp.json();
         }).catch(function (err) {
-            window.alert(err.message || 'Something went wrong.');
+            window.UiFeedback.showToast(err.message || 'Something went wrong.', { variant: 'error' });
             throw err;
         });
     }
@@ -451,11 +451,13 @@ document.addEventListener('DOMContentLoaded', function () {
     root.querySelector('[data-action-reject-field]').addEventListener('click', function () {
         var field = findField(state.selectedFieldId);
         if (!field) return;
-        if (!window.confirm('Reject this detected field? It will be hidden from the list (the PDF itself is not changed).')) return;
-        callApi(fieldUrl('reject', field.id), {}).then(function () {
-            state.selectedFieldId = null;
-            showPanel('empty');
-            loadFields();
+        window.UiFeedback.showConfirm('Reject this detected field? It will be hidden from the list (the PDF itself is not changed).', { confirmText: 'Reject' }).then(function (ok) {
+            if (!ok) return;
+            callApi(fieldUrl('reject', field.id), {}).then(function () {
+                state.selectedFieldId = null;
+                showPanel('empty');
+                loadFields();
+            });
         });
     });
 

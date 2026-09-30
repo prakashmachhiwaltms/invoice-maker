@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return resp.json();
         }).catch(function (err) {
-            window.alert(err.message || 'Something went wrong.');
+            window.UiFeedback.showToast(err.message || 'Something went wrong.', { variant: 'error' });
             throw err;
         });
     }
@@ -322,15 +322,15 @@ document.addEventListener('DOMContentLoaded', function () {
     root.querySelector('[data-action-preview]').addEventListener('click', function () {
         var rules = validRules();
         if (!rules.length) {
-            window.alert('Add at least one rule with a label and a New Value.');
+            window.UiFeedback.showToast('Add at least one rule with a label and a New Value.', { variant: 'warning' });
             return;
         }
         if (state.scope !== 'batch' && !state.documentIds) {
-            window.alert('No PDFs are selected for this scope.');
+            window.UiFeedback.showToast('No PDFs are selected for this scope.', { variant: 'warning' });
             return;
         }
         if (state.scope === 'batch' && !state.batchId) {
-            window.alert('Choose a batch first.');
+            window.UiFeedback.showToast('Choose a batch first.', { variant: 'warning' });
             return;
         }
         var payload = buildScopePayload();
@@ -345,14 +345,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 ' PDF(s)? A new edited copy is created for each affected PDF - the originals are left untouched.'
             : 'Apply ' + state.lastPreview.total_matches + ' change(s) across ' + state.lastPreview.affected_pdfs +
                 ' PDF(s)? Each affected PDF gets a new version - originals are kept.';
-        if (!window.confirm(msg)) return;
-        var payload = buildScopePayload();
-        payload.rules = validRules();
-        postJson(root.getAttribute('data-apply-url'), payload).then(function (data) {
-            var summary = (state.createCopies ? 'Created ' : 'Updated ') + data.affected + ' PDF(s), ' +
-                data.total_changes + ' field(s) changed. ' + data.skipped + ' PDF(s) skipped (no match).';
-            window.alert(summary);
-            window.location.href = state.createCopies ? '/pdf-editor/library/?edited=1' : '/pdf-editor/library/';
+        window.UiFeedback.showConfirm(msg, { confirmText: 'Apply' }).then(function (ok) {
+            if (!ok) return;
+            var payload = buildScopePayload();
+            payload.rules = validRules();
+            postJson(root.getAttribute('data-apply-url'), payload).then(function (data) {
+                var summary = (state.createCopies ? 'Created ' : 'Updated ') + data.affected + ' PDF(s), ' +
+                    data.total_changes + ' field(s) changed. ' + data.skipped + ' PDF(s) skipped (no match).';
+                window.UiFeedback.showToast(summary, { variant: 'success', delay: 3000 });
+                var target = state.createCopies ? '/pdf-editor/library/?edited=1' : '/pdf-editor/library/';
+                setTimeout(function () { window.location.href = target; }, 1400);
+            });
         });
     });
 
@@ -362,11 +365,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var discoveredChips = root.querySelector('[data-discovered-chips]');
     root.querySelector('[data-action-discover-labels]').addEventListener('click', function () {
         if (state.scope !== 'batch' && !state.documentIds) {
-            window.alert('No PDFs are selected for this scope.');
+            window.UiFeedback.showToast('No PDFs are selected for this scope.', { variant: 'warning' });
             return;
         }
         if (state.scope === 'batch' && !state.batchId) {
-            window.alert('Choose a batch first.');
+            window.UiFeedback.showToast('Choose a batch first.', { variant: 'warning' });
             return;
         }
         postJson(root.getAttribute('data-discover-url'), buildScopePayload()).then(function (data) {
@@ -413,16 +416,16 @@ document.addEventListener('DOMContentLoaded', function () {
     root.querySelector('[data-action-save-rule-set]').addEventListener('click', function () {
         var name = root.querySelector('[data-rule-set-name]').value.trim();
         if (!name) {
-            window.alert('Enter a rule set name first.');
+            window.UiFeedback.showToast('Enter a rule set name first.', { variant: 'warning' });
             return;
         }
         var rules = validRules();
         if (!rules.length) {
-            window.alert('Add at least one complete rule before saving.');
+            window.UiFeedback.showToast('Add at least one complete rule before saving.', { variant: 'warning' });
             return;
         }
         postJson(ruleSetsUrl, { name: name, rules: rules }).then(function () {
-            window.alert('Rule set "' + name + '" saved.');
+            window.UiFeedback.showToast('Rule set "' + name + '" saved.', { variant: 'success' });
             loadRuleSetOptions();
         });
     });

@@ -86,10 +86,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---- Generic confirm-submit forms (delete etc.) ----
     document.querySelectorAll('[data-confirm]').forEach(function (form) {
         form.addEventListener('submit', function (e) {
+            if (form.dataset.confirmed) return; // already confirmed, let it through
+            e.preventDefault();
             var msg = form.getAttribute('data-confirm');
-            if (!window.confirm(msg)) {
-                e.preventDefault();
-            }
+            window.UiFeedback.showConfirm(msg, { danger: true, confirmText: 'Confirm' }).then(function (ok) {
+                if (ok) {
+                    form.dataset.confirmed = '1';
+                    form.submit();
+                }
+            });
         });
     });
 
