@@ -353,7 +353,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 var summary = (state.createCopies ? 'Created ' : 'Updated ') + data.affected + ' PDF(s), ' +
                     data.total_changes + ' field(s) changed. ' + data.skipped + ' PDF(s) skipped (no match).';
                 window.UiFeedback.showToast(summary, { variant: 'success', delay: 3000 });
-                var target = state.createCopies ? '/pdf-editor/library/?edited=1' : '/pdf-editor/library/';
+                var libraryBase = root.getAttribute('data-library-url') || '/pdf-editor/library/';
+                var sep = libraryBase.indexOf('?') > -1 ? '&' : '?';
+                var target = state.createCopies ? (libraryBase + sep + 'edited=1') : libraryBase;
                 setTimeout(function () { window.location.href = target; }, 1400);
             });
         });
