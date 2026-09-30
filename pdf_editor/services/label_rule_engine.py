@@ -188,8 +188,8 @@ def build_preview(documents, rules):
             winner = match.winning_rule_index
             rule = rules[winner]
             new_label, new_separator, new_value = resolved_replacement(rule, match.field)
-            before = field_service._format_field_text(match.field.label, match.field.separator, match.field.value)
-            after = field_service._format_field_text(new_label, new_separator, new_value)
+            before = field_service._format_field_text(match.field.label, match.field.separator, match.field.value, match.field.is_stacked)
+            after = field_service._format_field_text(new_label, new_separator, new_value, match.field.is_stacked)
             field_previews.append({
                 'field': match.field, 'before': before, 'after': after,
                 'rule_index': winner, 'is_conflict': match.is_conflict, 'all_rule_indices': match.rule_indices,

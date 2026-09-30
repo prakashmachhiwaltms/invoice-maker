@@ -150,6 +150,13 @@ class PdfField(models.Model):
     separator = models.CharField(max_length=10, blank=True, default=':')
     original_separator = models.CharField(max_length=10, blank=True, default=':')
 
+    # True when this field was detected as a bare label line (e.g. "Bill To")
+    # with its value absorbed from the line(s) below it - there is no
+    # separator character actually printed in the PDF, so a replacement must
+    # keep the label and value on separate lines too, instead of joining them
+    # with `separator` onto one line like an inline "Label: Value" pair.
+    is_stacked = models.BooleanField(default=False)
+
     label_bbox = models.JSONField(default=dict, blank=True)
     value_bbox = models.JSONField(default=dict, blank=True)
 

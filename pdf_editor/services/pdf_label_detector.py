@@ -132,7 +132,7 @@ def _try_two_span_split(line):
     return {
         'page': line['page'], 'label': label_text, 'value': value_text, 'separator': sep,
         'label_bbox': label_bbox, 'value_bbox': value_bbox,
-        'confidence': _confidence_for(label_text, sep),
+        'confidence': _confidence_for(label_text, sep), 'stacked': False,
         **_span_font_info(value_spans[0]),
     }
 
@@ -165,7 +165,7 @@ def _try_single_span_split(line):
     return {
         'page': line['page'], 'label': label_text, 'value': value_text, 'separator': sep,
         'label_bbox': label_bbox, 'value_bbox': value_bbox,
-        'confidence': _confidence_for(label_text, sep),
+        'confidence': _confidence_for(label_text, sep), 'stacked': False,
         **_span_font_info(first_span),
     }
 
@@ -239,7 +239,7 @@ def _absorb_multiline_values(lines, candidates):
             'page': line['page'], 'label': label_text, 'value': value_text, 'separator': sep,
             'label_bbox': {'x': line['x'], 'y': line['y'], 'width': line['width'], 'height': line['height']},
             'value_bbox': {'x': x0, 'y': y0, 'width': x1 - x0, 'height': y1 - y0},
-            'confidence': _confidence_for(label_text, sep, absorbed=True),
+            'confidence': _confidence_for(label_text, sep, absorbed=True), 'stacked': True,
             **_span_font_info(first_span),
         })
 

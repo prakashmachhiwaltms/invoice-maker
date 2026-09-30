@@ -1,6 +1,7 @@
 import datetime
 from decimal import Decimal
 
+import pymupdf as fitz
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.test import TestCase
@@ -106,6 +107,60 @@ class FieldServiceTests(TestCase):
         reapplied = PdfField.objects.get(pk=field_id)
         self.assertEqual(reapplied.label, 'Customer')
         self.assertEqual(reapplied.value, 'MAHENDRA PVT LTD')
+
+    def _make_two_column_document(self):
+        """A two-column layout with a bare "Bill To" heading (right column,
+        value on the line below - no printed separator) beside unrelated
+        left-column text at similar Y positions, reproducing a live-reported
+        bug."""
+        doc = fitz.open()
+        page = doc.new_page()
+        page.insert_text((50, 100), 'Anthropic, PBC', fontsize=10, fontname='helv')
+        page.insert_text((50, 115), '548 Market Street', fontsize=10, fontname='helv')
+        page.insert_text((300, 105), 'Bill To', fontsize=10, fontname='helv')
+        page.insert_text((300, 120), 'Deepak Verma', fontsize=10, fontname='helv')
+        data = doc.tobytes()
+        document = PdfDocument.objects.create(
+            original_file=ContentFile(data, name='TWOCOL-001.pdf'), filename='TWOCOL-001.pdf',
+            uploaded_by=self.user, page_count=1, has_extractable_text=True, status=PdfDocument.STATUS_READY,
+        )
+        version = PdfVersion.objects.create(
+            document=document, version_number=1, file=ContentFile(data, name='TWOCOL-001.pdf'),
+            note='Original upload', created_by=self.user,
+        )
+        document.current_version = version
+        document.save(update_fields=['current_version'])
+        return document
+
+    def test_stacked_bare_label_edit_keeps_label_and_value_on_separate_lines(self):
+        """Regression test for a live-reported bug: editing the value of a
+        bare-label field (label alone on one line, value absorbed from the
+        line below - e.g. a "Bill To" heading) must not join them onto one
+        line with a separator character that was never actually printed in
+        the PDF. The edited PDF must keep the same two-line shape as the
+        original.
+        """
+        doc = self._make_two_column_document()
+        field_service.sync_detected_fields(doc)
+        target = PdfField.objects.get(document=doc, label='Bill To', value='Deepak Verma')
+        self.assertTrue(target.is_stacked)
+
+        field_service.apply_field_edit(doc, self.user, target.pk, None, None, 'Vellko Media')
+        doc.refresh_from_db()
+
+        lines = document_service.open_fitz(doc)[0].get_text('text').splitlines()
+        label_lines = [l for l in lines if l.strip() == 'Bill To']
+        self.assertTrue(label_lines, f'no standalone "Bill To" line found in {lines!r}')
+        self.assertNotIn('Bill To : Vellko Media', document_service.open_fitz(doc)[0].get_text('text'))
+        self.assertNotIn('Bill To: Vellko Media', document_service.open_fitz(doc)[0].get_text('text'))
+        value_lines = [l for l in lines if 'Vellko Media' in l]
+        self.assertTrue(value_lines, f'no "Vellko Media" line found in {lines!r}')
+        self.assertEqual(value_lines[0].strip(), 'Vellko Media')
+
+        # The unrelated left-column text must be untouched.
+        text = document_service.open_fitz(doc)[0].get_text('text')
+        self.assertIn('Anthropic, PBC', text)
+        self.assertIn('548 Market Street', text)
 
     def test_manual_field_creation_and_reject_survive_resync(self):
         doc = self._make_document()

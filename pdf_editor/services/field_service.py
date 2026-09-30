@@ -62,7 +62,7 @@ def sync_detected_fields(document: PdfDocument):
                 separator=cand['separator'], original_separator=cand['separator'],
                 label_bbox=cand['label_bbox'], value_bbox=cand['value_bbox'],
                 font=cand['font'], font_size=cand['font_size'], font_weight=cand['font_weight'],
-                color=cand['color'], confidence=cand['confidence'],
+                color=cand['color'], confidence=cand['confidence'], is_stacked=cand.get('stacked', False),
                 status=PdfField.STATUS_DETECTED, is_detected=True, is_manual=False,
             )
         elif existing_field.status in (PdfField.STATUS_DETECTED, PdfField.STATUS_CONFIRMED, PdfField.STATUS_EDITED):
@@ -76,6 +76,7 @@ def sync_detected_fields(document: PdfDocument):
             existing_field.font_weight = cand['font_weight']
             existing_field.color = cand['color']
             existing_field.confidence = cand['confidence']
+            existing_field.is_stacked = cand.get('stacked', False)
             existing_field.save()
         # REJECTED / MANUAL rows: never touched by re-detection.
 
@@ -93,9 +94,16 @@ def _union_bbox(label_bbox, value_bbox):
     return (x0, y0, x1, y1)
 
 
-def _format_field_text(label, separator, value):
+def _format_field_text(label, separator, value, stacked=False):
     label = (label or '').strip()
     value = (value or '').strip()
+    if stacked:
+        # No separator character was ever printed for this field - it was
+        # detected as a bare label line with its value on the line(s) below
+        # (e.g. a "Bill To" heading), so a replacement must keep that same
+        # two-line shape rather than joining them with `separator` (which
+        # only exists for rule-matching purposes here, never for display).
+        return f'{label}\n{value}'.strip('\n')
     separator = (separator or '').strip()
     if separator:
         return f'{label} {separator} {value}'.strip()
@@ -121,8 +129,8 @@ def apply_multiple_field_edits(document: PdfDocument, user, edits):
         new_separator = new_separator if new_separator is not None else pdf_field.separator
         new_value = new_value if new_value is not None else pdf_field.value
 
-        old_text = _format_field_text(pdf_field.label, pdf_field.separator, pdf_field.value)
-        new_text = _format_field_text(new_label, new_separator, new_value)
+        old_text = _format_field_text(pdf_field.label, pdf_field.separator, pdf_field.value, pdf_field.is_stacked)
+        new_text = _format_field_text(new_label, new_separator, new_value, pdf_field.is_stacked)
         bbox = _union_bbox(pdf_field.label_bbox, pdf_field.value_bbox)
         page = doc[pdf_field.page]
         page_width = page.rect.width
