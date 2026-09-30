@@ -15,12 +15,14 @@ else:
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-me')
 DEBUG = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost,213.21.243.130,invoice.fundtld.info', cast=Csv())
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
-    default='http://127.0.0.1,http://localhost,http://213.21.243.130,https://213.21.243.130',
+    default='http://127.0.0.1,http://localhost,http://213.21.243.130,https://213.21.243.130,http://invoice.fundtld.info,https://invoice.fundtld.info',
     cast=Csv()
 )
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
 
 FORCE_SCRIPT_NAME = config('FORCE_SCRIPT_NAME', default=None)
 if FORCE_SCRIPT_NAME:
