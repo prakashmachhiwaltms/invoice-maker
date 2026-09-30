@@ -77,6 +77,32 @@ document.addEventListener('DOMContentLoaded', function () {
     var summaryEl = document.querySelector('[data-detected-summary]');
     var addFieldHint = root.querySelector('[data-add-field-hint]');
 
+    // ---- Native PDF preview toggle ----
+    // (See pdf_editor.js's identical helper.) The click-to-edit canvas here
+    // only shows selectable text for confirmed/detected fields plus a
+    // best-effort full-page layer; a real PDF in an iframe is the more
+    // reliable option when the user just wants to read/copy, not edit.
+    var pdfViewBtn = root.querySelector('[data-action-toggle-pdf-view]');
+    var nativeView = root.querySelector('[data-pdf-native-view]');
+    var nativeIframe = root.querySelector('[data-pdf-native-iframe]');
+    var pdfViewLabel = root.querySelector('[data-pdf-view-label]');
+    var nativeViewActive = false;
+    if (pdfViewBtn) {
+        pdfViewBtn.addEventListener('click', function () {
+            nativeViewActive = !nativeViewActive;
+            if (nativeViewActive) {
+                if (!nativeIframe.src) nativeIframe.src = root.getAttribute('data-view-pdf-url');
+                canvasScroll.hidden = true;
+                nativeView.hidden = false;
+                if (pdfViewLabel) pdfViewLabel.textContent = 'Edit View';
+            } else {
+                canvasScroll.hidden = false;
+                nativeView.hidden = true;
+                if (pdfViewLabel) pdfViewLabel.textContent = 'PDF View';
+            }
+        });
+    }
+
     var panelEmpty = root.querySelector('[data-panel-empty]');
     var panelField = root.querySelector('[data-panel-field]');
     var panelAdd = root.querySelector('[data-panel-add]');

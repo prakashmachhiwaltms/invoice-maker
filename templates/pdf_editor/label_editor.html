@@ -32,7 +32,8 @@
      data-manual-create-url="{% url 'pdf_editor:api_field_manual_create' document.pk %}"
      data-undo-url="{% url 'pdf_editor:api_undo' document.pk %}"
      data-redo-url="{% url 'pdf_editor:api_redo' document.pk %}"
-     data-label-editor-home-url="{% url 'pdf_editor:label_editor_home' %}">
+     data-label-editor-home-url="{% url 'pdf_editor:label_editor_home' %}"
+     data-view-pdf-url="{% url 'pdf_editor:download_current' document.pk %}?inline=1">
 
     {% if not document.has_extractable_text %}
     <div class="alert alert-warning d-flex align-items-center gap-3 mb-3">
@@ -63,6 +64,11 @@
                     <button type="button" class="btn btn-sm btn-outline-soft" data-canvas-zoom="-10"><i class="bi bi-dash"></i></button>
                     <span class="small" data-canvas-zoom-label>100%</span>
                     <button type="button" class="btn btn-sm btn-outline-soft" data-canvas-zoom="10"><i class="bi bi-plus"></i></button>
+                    {% if document.has_extractable_text %}
+                    <button type="button" class="btn btn-sm btn-outline-soft ms-2" data-action-toggle-pdf-view title="Switch to a real PDF preview to select and copy text">
+                        <i class="bi bi-file-earmark-pdf me-1"></i><span data-pdf-view-label>PDF View</span>
+                    </button>
+                    {% endif %}
                 </div>
             </div>
             <div class="pdf-canvas-scroll">
@@ -73,6 +79,9 @@
                         <div class="pdf-overlay" data-pdf-overlay></div>
                     </div>
                 </div>
+            </div>
+            <div class="pdf-native-view" data-pdf-native-view hidden>
+                <iframe data-pdf-native-iframe title="Native PDF preview"></iframe>
             </div>
         </div>
 

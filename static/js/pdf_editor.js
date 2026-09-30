@@ -201,6 +201,33 @@ document.addEventListener('DOMContentLoaded', function () {
     var undoBtn = root.querySelector('[data-action-undo]');
     var redoBtn = root.querySelector('[data-action-redo]');
 
+    // ---- Native PDF preview toggle ----
+    // The click-to-edit canvas is a rendered image with an invisible text
+    // overlay, which is good enough for copying but not as reliable as a
+    // real PDF (multi-column reading order, exact glyph-for-glyph text).
+    // This swaps in the browser's own PDF viewer, in an iframe, when the
+    // user just wants to read/copy rather than edit.
+    var pdfViewBtn = root.querySelector('[data-action-toggle-pdf-view]');
+    var nativeView = root.querySelector('[data-pdf-native-view]');
+    var nativeIframe = root.querySelector('[data-pdf-native-iframe]');
+    var pdfViewLabel = root.querySelector('[data-pdf-view-label]');
+    var nativeViewActive = false;
+    if (pdfViewBtn) {
+        pdfViewBtn.addEventListener('click', function () {
+            nativeViewActive = !nativeViewActive;
+            if (nativeViewActive) {
+                if (!nativeIframe.src) nativeIframe.src = root.getAttribute('data-view-pdf-url');
+                canvasScroll.hidden = true;
+                nativeView.hidden = false;
+                if (pdfViewLabel) pdfViewLabel.textContent = 'Edit View';
+            } else {
+                canvasScroll.hidden = false;
+                nativeView.hidden = true;
+                if (pdfViewLabel) pdfViewLabel.textContent = 'PDF View';
+            }
+        });
+    }
+
     var panelEmpty = root.querySelector('[data-panel-empty]');
     var panelSelect = root.querySelector('[data-panel-select]');
     var panelAdd = root.querySelector('[data-panel-add]');

@@ -241,7 +241,8 @@ def download_current(request, pk):
     base_name = document.filename[:-4] if document.filename.lower().endswith('.pdf') else document.filename
     suffix = '' if version_no == 1 else f'_edited_v{version_no}'
     response = HttpResponse(data, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{base_name}{suffix}.pdf"'
+    disposition = 'inline' if request.GET.get('inline') else 'attachment'
+    response['Content-Disposition'] = f'{disposition}; filename="{base_name}{suffix}.pdf"'
     return response
 
 

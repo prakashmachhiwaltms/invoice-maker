@@ -60,6 +60,19 @@
     border-bottom: 1px solid var(--color-border);
 }
 
+.pdf-native-view {
+    flex: 1;
+    background: #E9EBEF;
+    min-height: 0;
+}
+
+.pdf-native-view iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+
 .pdf-canvas-scroll {
     flex: 1;
     overflow: auto;
