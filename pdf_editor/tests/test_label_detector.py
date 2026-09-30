@@ -58,6 +58,41 @@ class LabelDetectorTests(TestCase):
         self.assertIn('Hoshangabad Road', addr['value'])
         self.assertIn('462026', addr['value'])
 
+    def test_real_world_bill_to_block_with_name_and_slash_in_address(self):
+        """Regression test for a live-reported bug: a "Bill To" heading
+        followed by a multi-line recipient block (name, a flat number
+        containing "/", city/state, country code, phone, email) must all be
+        absorbed as ONE "Bill To" field - short lines like "TMS" or "IN"
+        must not be mistaken for new labels that cut the absorption short,
+        and "G5/1, NARMADA BHAWAN..." must not be split into a fake
+        "G5" -> "1, NARMADA BHAWAN..." field via the "/" in the flat number.
+        """
+        doc = _make_pdf([
+            'Bill To',
+            'TMS',
+            'HARSHIT SHRIVASTAVA',
+            'G5/1, NARMADA BHAWAN, TULSI NAGAR',
+            'BHOPAL, Madhya Pradesh 462003',
+            'IN',
+            '6266781548',
+            'weberdomenick8@gmail.com',
+        ])
+        candidates = det.detect_candidates(doc)
+        labels = [c['label'] for c in candidates]
+
+        bill_to = next((c for c in candidates if c['label'] == 'Bill To'), None)
+        self.assertIsNotNone(bill_to, f'no "Bill To" field found in {labels}')
+        for expected in ('TMS', 'HARSHIT SHRIVASTAVA', 'G5/1, NARMADA BHAWAN, TULSI NAGAR',
+                         'BHOPAL, Madhya Pradesh 462003', 'IN', '6266781548', 'weberdomenick8@gmail.com'):
+            self.assertIn(expected, bill_to['value'], f'"{expected}" missing from Bill To value: {bill_to["value"]!r}')
+
+        # None of the address lines should have been split off into their
+        # own spurious fields (the "G5" / "IN" false positives from before).
+        self.assertNotIn('G5', labels)
+        self.assertNotIn('IN', labels)
+        self.assertNotIn('TMS', labels)
+        self.assertNotIn('HARSHIT SHRIVASTAVA', labels)
+
     def test_two_column_same_y_do_not_collide(self):
         """Two fields with the same label at the same y but different x (a
         common two-column supplier/recipient layout) must both be detected."""

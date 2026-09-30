@@ -13,8 +13,8 @@ import re
 
 from .fonts import base14_font, is_bold, is_italic, normalize_color
 
-SEPARATORS = [':', '-', '–', '=', '|', '/']
-SEPARATOR_CLASS = r'[:\-–=|/]'
+SEPARATORS = [':', '-', '–', '=', '|']
+SEPARATOR_CLASS = r'[:\-–=|]'
 LABEL_VALUE_RE = re.compile(
     r'^(?P<label>.{1,50}?)\s*(?P<sep>' + SEPARATOR_CLASS + r')\s*(?P<value>.+)$'
 )
@@ -28,7 +28,7 @@ COMMON_LABEL_WORDS = (
 )
 
 MAX_VERTICAL_GAP_RATIO = 1.8  # multiple of line height allowed when absorbing continuation lines
-MAX_ABSORBED_LINES = 6
+MAX_ABSORBED_LINES = 10
 
 
 def _page_lines(doc, page_index):
@@ -170,8 +170,10 @@ def _try_single_span_split(line):
 
 
 def _absorb_multiline_values(lines, candidates):
-    """A label whose value is empty/very short (e.g. a bare 'Address' line)
-    absorbs following non-label lines within a small vertical gap."""
+    """A label whose value is empty/very short (e.g. a bare 'Address' or
+    'Bill To' line) absorbs following non-label lines within a small
+    vertical gap - e.g. a full multi-line recipient block (name, street,
+    city/state, country, phone, email)."""
     used_line_indices = set()
     for cand in candidates:
         cand['_absorbed_from'] = None
@@ -188,6 +190,12 @@ def _absorb_multiline_values(lines, candidates):
                 label_only.append((i, line, m.group('label').strip(), m.group('sep') or ':'))
 
     for i, line, label_text, sep in label_only:
+        if i in used_line_indices:
+            # Already absorbed as a continuation line of an earlier bare
+            # label (e.g. "Bill To" swallowed this "IN" country-code line as
+            # part of its address block) - don't also treat it as its own
+            # separate label with nothing following it.
+            continue
         value_lines = []
         last_y = line['y']
         last_height = max(line['height'], 8)
@@ -196,17 +204,13 @@ def _absorb_multiline_values(lines, candidates):
             gap = nxt['y'] - last_y
             if gap > last_height * MAX_VERTICAL_GAP_RATIO or gap < 0:
                 break
-            # Stop absorbing once we hit a line that is itself a genuine
-            # label:value or bare-label candidate (using the same
-            # _looks_label_like-filtered check as the main pass) - a raw
-            # regex match on LABEL_VALUE_RE is too loose here, since a value
-            # line like "215-A, 2nd Floor..." also matches it (the hyphen in
-            # "215-A" looks like a separator) and would wrongly end absorption.
-            nxt_text = nxt['text'].strip()
+            # Only stop absorbing on a genuine separator-based match (an
+            # explicit ":"/"-"/etc. actually present) - NOT merely because a
+            # line happens to look like a short bare label. Real address
+            # blocks are full of short lines (a person's name, a country
+            # code, a company code) that would otherwise each wrongly look
+            # like the start of a new field and cut the absorption short.
             if _try_two_span_split(nxt) or _try_single_span_split(nxt):
-                break
-            bare = BARE_LABEL_RE.match(nxt_text)
-            if bare and _looks_label_like(bare.group('label')):
                 break
             value_lines.append(nxt)
             last_y = nxt['y']
