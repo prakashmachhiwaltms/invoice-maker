@@ -65,8 +65,28 @@
     overflow: auto;
     background: #E9EBEF;
     padding: 24px;
-    display: flex;
-    justify-content: center;
+    /* Deliberately NOT display:flex + justify-content:center here: centering
+       an overflowing flex child is a known browser bug where the "before"
+       side of the overflow becomes unreachable by scrolling (scrollLeft
+       can't go negative), which is exactly what made a zoomed-out page look
+       like it "doesn't fit" - part of it was permanently off-screen. Block
+       layout + margin:auto on the child centers it the same way when it
+       fits, but scrolls correctly (from the true left/top edge) once it's
+       bigger than the viewport. */
+}
+
+.pdf-canvas-outer {
+    /* Sized in JS to the zoomed (visual) dimensions, so the scroll container
+       reserves exactly that much space - a CSS transform on .pdf-canvas-wrap
+       alone would shrink/grow the picture without changing the layout box it
+       occupies, leaving a page that's "zoomed out" but still needs scrolling
+       to see all of, or the opposite when zoomed in. overflow:hidden clips
+       .pdf-canvas-wrap's un-transformed (full-size) layout box to this
+       element's actual (zoomed) size, so it doesn't leak into the scroll
+       container's scrollable area. */
+    display: block;
+    margin: 0 auto;
+    overflow: hidden;
 }
 
 .pdf-canvas-wrap {
@@ -74,7 +94,7 @@
     display: inline-block;
     background: #fff;
     box-shadow: 0 2px 10px rgba(15, 23, 42, 0.15);
-    transform-origin: top center;
+    transform-origin: top left;
 }
 
 .pdf-canvas-wrap img {

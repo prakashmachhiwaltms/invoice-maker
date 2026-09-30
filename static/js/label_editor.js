@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var img = root.querySelector('[data-pdf-page-image]');
     var overlay = root.querySelector('[data-pdf-overlay]');
+    var canvasOuter = root.querySelector('[data-canvas-outer]');
     var canvasWrap = root.querySelector('[data-canvas-wrap]');
     var pageCurrentEl = root.querySelector('[data-page-current]');
     var pageTotalEl = root.querySelector('[data-page-total]');
@@ -72,7 +73,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function applyZoom() {
-        canvasWrap.style.transform = 'scale(' + (state.zoom / 100) + ')';
+        var scale = state.zoom / 100;
+        canvasWrap.style.transform = 'scale(' + scale + ')';
+        canvasOuter.style.width = (state.imageWidth * scale) + 'px';
+        canvasOuter.style.height = (state.imageHeight * scale) + 'px';
         if (zoomLabel) zoomLabel.textContent = state.zoom + '%';
     }
     root.querySelectorAll('[data-canvas-zoom]').forEach(function (btn) {
@@ -96,6 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
         img.style.height = data.image_height + 'px';
         canvasWrap.style.width = data.image_width + 'px';
         canvasWrap.style.height = data.image_height + 'px';
+        applyZoom();
         if (pageCurrentEl) pageCurrentEl.textContent = data.page;
         if (pageTotalEl) pageTotalEl.textContent = data.page_count;
         renderOverlay();

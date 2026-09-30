@@ -26,6 +26,12 @@
                     <div class="mt-3" data-pdf-file-list></div>
 
                     <div class="mb-3 mt-3">
+                        <label class="form-label small">{{ form.existing_batch.label }}</label>
+                        {{ form.existing_batch }}
+                        <p class="text-muted-2 small mt-1 mb-0">Pick a batch to add these PDF(s) to it, or leave as "Create a new batch" below.</p>
+                    </div>
+
+                    <div class="mb-3" data-batch-name-field>
                         <label class="form-label small">{{ form.batch_name.label }}</label>
                         {{ form.batch_name }}
                     </div>

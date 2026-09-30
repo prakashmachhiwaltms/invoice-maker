@@ -10,13 +10,20 @@ from ..models import PdfBatch, PdfDocument, PdfVersion
 
 
 @transaction.atomic
-def create_batch_from_files(files, user, batch_name=''):
-    """Validate + ingest a list of uploaded PDF files into a new PdfBatch.
+def create_batch_from_files(files, user, batch_name='', existing_batch=None):
+    """Validate + ingest a list of uploaded PDF files into a PdfBatch - a
+    brand new one by default, or an existing one when `existing_batch` is
+    given, so a user can add more PDFs to a batch they already created.
 
     Returns (batch, created_documents, per_file_errors) - a bad file among a
     multi-file upload doesn't abort the rest.
     """
-    batch = PdfBatch.objects.create(name=batch_name, total_files=len(files), created_by=user)
+    adding_to_existing = existing_batch is not None
+    if adding_to_existing:
+        batch = existing_batch
+    else:
+        batch = PdfBatch.objects.create(name=batch_name, total_files=0, created_by=user)
+
     created = []
     errors = []
 
@@ -30,10 +37,16 @@ def create_batch_from_files(files, user, batch_name=''):
         except Exception as exc:  # malformed PDF that fails to open, etc.
             errors.append({'filename': f.name, 'error': f'Could not process file: {exc}'})
 
-    batch.processed_count = len(created)
-    batch.failed_count = len(errors)
+    if adding_to_existing:
+        batch.total_files += len(files)
+        batch.processed_count += len(created)
+        batch.failed_count += len(errors)
+    else:
+        batch.total_files = len(files)
+        batch.processed_count = len(created)
+        batch.failed_count = len(errors)
     batch.status = PdfBatch.STATUS_COMPLETED if not errors or created else PdfBatch.STATUS_FAILED
-    batch.save(update_fields=['processed_count', 'failed_count', 'status'])
+    batch.save(update_fields=['total_files', 'processed_count', 'failed_count', 'status'])
     return batch, created, errors
 
 

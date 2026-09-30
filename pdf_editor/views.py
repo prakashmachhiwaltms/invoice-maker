@@ -77,21 +77,30 @@ def dashboard_view(request):
 
 @login_required
 def upload_view(request):
-    form = PdfUploadForm(request.POST or None)
+    initial = {}
+    preselect_batch = request.GET.get('batch')
+    if preselect_batch and preselect_batch.isdigit():
+        initial['existing_batch'] = preselect_batch
+    form = PdfUploadForm(request.POST or None, user=request.user, initial=initial)
     if request.method == 'POST':
         files = request.FILES.getlist('files')
         if not files:
             messages.error(request, 'Please choose at least one PDF file.')
         elif form.is_valid():
+            existing_batch = form.cleaned_data.get('existing_batch')
             batch, created, errors = create_batch_from_files(
-                files, request.user, form.cleaned_data.get('batch_name', ''),
+                files, request.user,
+                batch_name=form.cleaned_data.get('batch_name', ''),
+                existing_batch=existing_batch,
             )
+            action = 'PDFs added to batch' if existing_batch else 'PDF batch uploaded'
             ActivityLog.log(
-                request.user, 'PDF batch uploaded', obj=batch,
+                request.user, action, obj=batch,
                 description=f'{len(created)} succeeded, {len(errors)} failed', request=request,
             )
             if created:
-                messages.success(request, f'{len(created)} PDF(s) uploaded successfully.')
+                verb = 'added to the batch' if existing_batch else 'uploaded successfully'
+                messages.success(request, f'{len(created)} PDF(s) {verb}.')
             for err in errors:
                 messages.error(request, f'{err["filename"]}: {err["error"]}')
             return redirect('pdf_editor:batch_detail', pk=batch.pk)
