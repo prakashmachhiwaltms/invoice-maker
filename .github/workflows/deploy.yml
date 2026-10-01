@@ -110,7 +110,7 @@ jobs:
 
             echo "=== [14/14] APPLICATION HEALTH CHECK ==="
             sleep 3
-            curl -fsS -L -o /dev/null -w "Health Check OK (HTTP %{http_code})\n" https://invoice.fundtld.info/accounts/login/
+            curl -fsS -L --resolve invoice.fundtld.info:443:127.0.0.1 -o /dev/null -w "Health Check OK (HTTP %{http_code})\n" https://invoice.fundtld.info/accounts/login/
 
             echo "=========================================="
             echo "DEPLOYMENT COMPLETED SUCCESSFULLY"
