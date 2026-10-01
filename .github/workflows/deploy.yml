@@ -9,6 +9,9 @@ jobs:
   validate:
     name: Validate Project & Migrations
     runs-on: ubuntu-latest
+    env:
+      DB_ENGINE: django.db.backends.sqlite3
+      SECRET_KEY: ci-test-key-for-github-runner-checks
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
