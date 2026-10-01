@@ -78,7 +78,7 @@ jobs:
 
             echo "=== [6/14] RUNNING PRE-MIGRATION DATABASE BACKUP ==="
             chmod +x scripts/backup_db.sh
-            ./scripts/backup_db.sh
+            ./scripts/backup_db.sh </dev/null
 
             echo "=== [7/14] ACTIVATING VIRTUAL ENVIRONMENT ==="
             if [ ! -d "venv" ]; then

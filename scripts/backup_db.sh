@@ -56,7 +56,7 @@ if command -v mysqldump &> /dev/null; then
         --no-tablespaces \
         "$DB_NAME" > "$BACKUP_FILE"
 elif command -v docker &> /dev/null && docker ps --format '{{.Names}}' | grep -q 'vellkoerp-testing-host-mysql-1'; then
-    docker exec -i -e MYSQL_PWD="$DB_PASSWORD" vellkoerp-testing-host-mysql-1 \
+    docker exec </dev/null -e MYSQL_PWD="$DB_PASSWORD" vellkoerp-testing-host-mysql-1 \
         mysqldump \
         --single-transaction \
         --quick \
