@@ -50,9 +50,10 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
           script: |
+            bash -s << 'EOF'
             set -euo pipefail
 
-            echo "=== [1/15] VERIFYING PROJECT DIRECTORY ==="
+            echo "=== [1/14] VERIFYING PROJECT DIRECTORY ==="
             APP_DIR="/var/www/invoice-maker"
             if [ ! -d "$APP_DIR" ]; then
               echo "[ERROR] Application directory $APP_DIR does not exist!" >&2
@@ -60,67 +61,58 @@ jobs:
             fi
             cd "$APP_DIR"
 
-            echo "=== [2/15] VERIFYING GIT REPOSITORY ==="
+            echo "=== [2/14] VERIFYING GIT REPOSITORY ==="
             if [ ! -d ".git" ]; then
               echo "[ERROR] Directory $APP_DIR is not a git repository!" >&2
               exit 1
             fi
 
-            echo "=== [3/15] RUNNING PRE-MIGRATION DATABASE BACKUP ==="
-            if [ -f "scripts/backup_db.sh" ]; then
-              chmod +x scripts/backup_db.sh
-              ./scripts/backup_db.sh
-            else
-              echo "[NOTICE] scripts/backup_db.sh will be loaded upon pull."
-            fi
-
-            echo "=== [4/15] FETCHING LATEST COMMITS ==="
+            echo "=== [3/14] FETCHING LATEST COMMITS ==="
             git fetch origin main
 
-            echo "=== [5/15] CHECKING OUT MAIN BRANCH ==="
+            echo "=== [4/14] CHECKING OUT MAIN BRANCH ==="
             git checkout main
 
-            echo "=== [6/15] PULLING CODE (--ff-only) ==="
+            echo "=== [5/14] PULLING CODE (--ff-only) ==="
             git pull --ff-only origin main
 
-            echo "=== [7/15] ENSURING BACKUP SCRIPT EXECUTED ==="
+            echo "=== [6/14] RUNNING PRE-MIGRATION DATABASE BACKUP ==="
             chmod +x scripts/backup_db.sh
-            if [ ! -d "/var/backups/invoice-maker" ] || [ -z "$(ls -A /var/backups/invoice-maker/*.sql 2>/dev/null || true)" ]; then
-              ./scripts/backup_db.sh
-            fi
+            ./scripts/backup_db.sh
 
-            echo "=== [8/15] ACTIVATING VIRTUAL ENVIRONMENT ==="
+            echo "=== [7/14] ACTIVATING VIRTUAL ENVIRONMENT ==="
             if [ ! -d "venv" ]; then
               echo "[ERROR] Virtual environment 'venv' not found in $APP_DIR!" >&2
               exit 1
             fi
             source venv/bin/activate
 
-            echo "=== [9/15] PYTHON ENVIRONMENT & DEPENDENCIES ==="
+            echo "=== [8/14] PYTHON ENVIRONMENT & DEPENDENCIES ==="
             python --version
             pip install -r requirements.txt --quiet
             python manage.py check
 
-            echo "=== [10/15] REVIEWING MIGRATION STATUS & PLAN ==="
+            echo "=== [9/14] REVIEWING MIGRATION STATUS & PLAN ==="
             python manage.py showmigrations
             python manage.py migrate --plan
 
-            echo "=== [11/15] EXECUTING DJANGO MIGRATIONS ==="
+            echo "=== [10/14] EXECUTING DJANGO MIGRATIONS ==="
             python manage.py migrate --noinput
 
-            echo "=== [12/15] COLLECTING STATIC ASSETS ==="
+            echo "=== [11/14] COLLECTING STATIC ASSETS ==="
             python manage.py collectstatic --noinput
 
-            echo "=== [13/15] RESTARTING GUNICORN SERVICE ==="
+            echo "=== [12/14] RESTARTING GUNICORN SERVICE ==="
             sudo systemctl restart invoice-maker.service
 
-            echo "=== [14/15] VERIFYING SERVICE STATUS ==="
+            echo "=== [13/14] VERIFYING SERVICE STATUS ==="
             sudo systemctl is-active invoice-maker.service
 
-            echo "=== [15/15] APPLICATION HEALTH CHECK ==="
+            echo "=== [14/14] APPLICATION HEALTH CHECK ==="
             sleep 3
             curl -fsS -L -o /dev/null -w "Health Check OK (HTTP %{http_code})\n" https://invoice.fundtld.info/accounts/login/
 
             echo "=========================================="
             echo "DEPLOYMENT COMPLETED SUCCESSFULLY"
             echo "=========================================="
+            EOF
